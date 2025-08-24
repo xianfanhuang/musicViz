@@ -23,7 +23,7 @@
 
 ## 在线演示
 
-[点击访问在线版本](https://yourusername.github.io/music-visualizer/)
+[点击访问在线版本](https://xianfanhuang.github.io/musicViz/)
 
 ## 本地运行
 
