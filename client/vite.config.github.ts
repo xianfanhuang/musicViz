@@ -5,7 +5,7 @@ import path from "path"
 // GitHub Pages configuration
 export default defineConfig({
   plugins: [react()],
-  base: "/", // Change this to your repository name if not using custom domain
+  base: '/musicViz/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client/src"),
