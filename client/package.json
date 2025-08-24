@@ -101,5 +101,9 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "scripts": {
+    "build:static": "vite build --config vite.config.github.ts"
   }
+
 }
