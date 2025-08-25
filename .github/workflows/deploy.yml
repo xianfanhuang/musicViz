@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 on:
   push:
-    branches: [test]  # 仅从 test 分支触发部署
+    branches: [test]  # test 分支触发部署
 jobs:
   deploy:
     runs-on: ubuntu-latest
