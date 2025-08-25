@@ -21,7 +21,8 @@ jobs:
         shell: bash  # 新增：强制用 bash 执行，确保 cd 命令持久生效
         run: |
           cd client  # 必须进入 client 目录（前端代码在此）
-          npm install  # 安装前端依赖（React、Vite 等）
+          npm config set registry https://registry.npmmirror.com/  # 新增：切换为淘宝源，加速依赖下载
+          npm install --verbose  # 新增 --verbose：输出详细安装日志，方便排查超时
           npm run build:github  # 执行关联 github 配置的构建命令（后续步骤会加这个脚本）
 
       # 关键修改 2：部署目录指向 client/dist（实际构建产物目录）
