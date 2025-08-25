@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:github": "npx vite build --config vite.config.github.ts",  // 新增 npx，强制调用本地 Vite
+    "build:github": "npx vite build --config vite.config.github.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
