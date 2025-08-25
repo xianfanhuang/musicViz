@@ -8,13 +8,12 @@ export default defineConfig({
   base: '/musicViz/',
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./client/src"),
-      "@assets": path.resolve(__dirname, "./client/src/assets"),
+      "@": path.resolve(__dirname, "src"),
+      "@assets": path.resolve(__dirname, "src/assets"),
     },
   },
-  root: "./client",
   build: {
-    outDir: "../dist",
+    outDir: "dist",
     emptyOutDir: true,
   },
   server: {
