@@ -18,6 +18,7 @@ jobs:
 
       # 关键修改 1：进入 client 目录，用 GitHub 专属配置构建
       - name: Install dependencies and build (GitHub Pages)
+        shell: bash  # 新增：强制用 bash 执行，确保 cd 命令持久生效
         run: |
           cd client  # 必须进入 client 目录（前端代码在此）
           npm install  # 安装前端依赖（React、Vite 等）
