@@ -5,7 +5,7 @@ on:
     branches: [test]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -25,7 +25,7 @@ jobs:
         working-directory: client
         run: |
           npm ci
-          npm run build:github  # 修正为实际存在的脚本
+          npm run build:static  # 修正为实际存在的脚本
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
