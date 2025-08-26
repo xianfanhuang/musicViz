@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音律视界 - 音乐可视化播放器</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',    // 靛蓝色
+            secondary: '#ec4899',  // 粉红色
+            dark: '#1e1b4b',       // 深色
+            light: '#f5f3ff',      // 浅色
+            theme1: '#6366f1',     // 主题1主色
+            theme2: '#10b981',     // 主题2主色(翡翠绿)
+            theme3: '#f59e0b',     // 主题3主色(琥珀色)
+            theme4: '#ec4899',     // 主题4主色(粉红色)
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .backdrop-blur-xl {
+        backdrop-filter: blur(24px);
+      }
+      .visualizer-container {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 4px;
+        cursor: pointer;
+        transition: height 0.2s;
+      }
+      .progress-bar:hover, .progress-bar:active {
+        height: 6px;
+      }
+      .control-btn {
+        transition: all 0.2s ease;
+      }
+      .control-btn:hover, .control-btn:active {
+        transform: scale(1.1);
+      }
+      .theme-btn {
+        transition: all 0.3s ease;
+      }
+      .theme-btn:hover, .theme-btn:active {
+        transform: scale(1.15);
+      }
+      .upload-area {
+        transition: all 0.3s ease;
+      }
+      .upload-area.drag-over {
+        background-color: rgba(99, 102, 241, 0.2);
+        border-color: rgba(99, 102, 241, 0.8);
+      }
+      /* 移动端优化样式 */
+      @media (max-width: 640px) {
+        .mobile-control-btn {
+          width: 12vw;
+          height: 12vw;
+          min-width: 40px;
+          min-height: 40px;
+        }
+        .mobile-large-btn {
+          width: 16vw;
+          height: 16vw;
+          min-width: 50px;
+          min-height: 50px;
+        }
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col">
+  <!-- 顶部导航 -->
+  <header class="bg-dark/80 backdrop-blur-xl border-b border-slate-800 py-4 px-6">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+          <i class="fa fa-music text-white text-xl"></i>
+        </div>
+        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">音律视界</h1>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <button id="fullscreenBtn" class="p-2 rounded-full hover:bg-slate-800 transition-colors">
+          <i class="fa fa-expand"></i>
+        </button>
+        <a href="https://github.com" target="_blank" class="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-full transition-colors">
+          <i class="fa fa-github"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 py-6">
+    <div class="max-w-6xl mx-auto">
+      <!-- 可视化区域 -->
+      <div class="visualizer-container bg-slate-800/50 rounded-2xl mb-6 overflow-hidden border border-slate-700/50">
+        <canvas id="visualizer" class="w-full aspect-video"></canvas>
+        
+        <!-- 加载状态 -->
+        <div id="loadingIndicator" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center hidden">
+          <div class="text-center">
+            <div class="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>处理音频中...</p>
+          </div>
+        </div>
+        
+        <!-- 初始提示 -->
+        <div id="initialMessage" class="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-center p-6">
+          <i class="fa fa-music text-6xl text-primary/70 mb-6"></i>
+          <h2 class="text-2xl font-bold mb-2">音乐可视化播放器</h2>
+          <p class="text-slate-300 mb-6 max-w-md">上传音乐文件或输入音频URL，体验绚丽的音乐可视化效果</p>
+          
+          <!-- 移动端优化的上传区域 -->
+          <div id="uploadArea" class="upload-area border-2 border-dashed border-slate-600 rounded-xl p-8 w-full max-w-md cursor-pointer">
+            <div class="text-center">
+              <i class="fa fa-upload text-3xl text-primary/70 mb-4"></i>
+              <p class="mb-2">点击或拖拽音频文件到此处</p>
+              <p class="text-sm text-slate-400">支持 MP3, WAV, FLAC 等格式</p>
+              <input type="file" id="fileInput" accept="audio/*" class="hidden">
+              
+              <!-- 移动端专用上传按钮 -->
+              <button id="mobileUploadBtn" class="mt-6 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full text-sm transition-colors">
+                <i class="fa fa-file-audio-o mr-2"></i>选择音频文件
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 错误提示 -->
+        <div id="errorMessage" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-center p-6 hidden">
+          <i class="fa fa-exclamation-triangle text-5xl text-amber-500 mb-4"></i>
+          <h3 class="text-xl font-bold mb-2">无法加载音频</h3>
+          <p id="errorDetails" class="text-slate-300 mb-6 max-w-md">请尝试其他音频文件或检查网络连接</p>
+          <button id="retryBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full transition-colors">
+            重试
+          </button>
+        </div>
+      </div>
+      
+      <!-- 音频信息和控制 -->
+      <div class="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50 mb-6">
+        <!-- 音频信息 -->
+        <div class="mb-5">
+          <h2 id="trackTitle" class="text-xl font-bold mb-1 truncate">未选择音频</h2>
+          <p id="trackInfo" class="text-slate-400 text-sm">请上传音频文件或输入URL</p>
+        </div>
+        
+        <!-- 进度条 -->
+        <div class="mb-4">
+          <div class="flex justify-between text-sm text-slate-400 mb-1">
+            <span id="currentTime">00:00</span>
+            <span id="totalTime">00:00</span>
+          </div>
+          <div class="bg-slate-700 rounded-full overflow-hidden progress-bar">
+            <div id="progressBar" class="h-full w-0 bg-gradient-to-r from-primary to-secondary"></div>
+          </div>
+        </div>
+        
+        <!-- 控制按钮 - 优化移动端触摸区域 -->
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4 sm:gap-6">
+            <button id="shuffleBtn" class="control-btn text-slate-400 hover:text-white p-2">
+              <i class="fa fa-random text-lg sm:text-xl"></i>
+            </button>
+            <button id="prevBtn" class="control-btn text-slate-400 hover:text-white p-2">
+              <i class="fa fa-step-backward text-lg sm:text-xl"></i>
+            </button>
+            <button id="playPauseBtn" class="control-btn mobile-large-btn rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white">
+              <i class="fa fa-play text-xl sm:text-2xl"></i>
+            </button>
+            <button id="nextBtn" class="control-btn text-slate-400 hover:text-white p-2">
+              <i class="fa fa-step-forward text-lg sm:text-xl"></i>
+            </button>
+            <button id="loopBtn" class="control-btn text-slate-400 hover:text-white p-2">
+              <i class="fa fa-repeat text-lg sm:text-xl"></i>
+            </button>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <button class="control-btn text-slate-400 hover:text-white p-2">
+              <i class="fa fa-volume-up text-lg sm:text-xl"></i>
+            </button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" class="w-24 sm:w-28 accent-primary">
+          </div>
+        </div>
+      </div>
+      
+      <!-- 可视化控制 - 优化移动端布局 -->
+      <div class="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
+        <h3 class="text-lg font-semibold mb-5">可视化设置</h3>
+        
+        <div class="grid grid-cols-1 gap-5">
+          <!-- 可视化模式选择 -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-3">可视化模式</label>
+            <div class="flex flex-wrap gap-2">
+              <button data-visualization="waveform" class="visualization-btn bg-primary text-white text-sm px-3 py-1.5 rounded-full">波形图</button>
+              <button data-visualization="bars" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">频谱柱</button>
+              <button data-visualization="particles" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">粒子</button>
+              <button data-visualization="circular" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">圆形</button>
+            </div>
+          </div>
+          
+          <!-- 主题选择 -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-3">颜色主题</label>
+            <div class="flex gap-3">
+              <button data-theme="theme1" class="theme-btn w-10 h-10 rounded-full bg-gradient-to-r from-theme1 to-purple-400 border-2 border-white"></button>
+              <button data-theme="theme2" class="theme-btn w-10 h-10 rounded-full bg-gradient-to-r from-theme2 to-teal-400 border-2 border-transparent hover:border-white/50"></button>
+              <button data-theme="theme3" class="theme-btn w-10 h-10 rounded-full bg-gradient-to-r from-theme3 to-orange-400 border-2 border-transparent hover:border-white/50"></button>
+              <button data-theme="theme4" class="theme-btn w-10 h-10 rounded-full bg-gradient-to-r from-theme4 to-pink-400 border-2 border-transparent hover:border-white/50"></button>
+            </div>
+          </div>
+          
+          <!-- 音频URL输入 -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-3">音频URL</label>
+            <div class="flex gap-2">
+              <input type="text" id="audioUrl" placeholder="输入音频URL..." class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+              <button id="loadUrlBtn" class="bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded-lg text-sm transition-colors">
+                加载
+              </button>
+            </div>
+          </div>
+          
+          <!-- 动画速度 -->
+          <div>
+            <label class="block text-sm text-slate-300 mb-3">动画速度</label>
+            <input type="range" id="animationSpeed" min="0.5" max="3" step="0.1" value="1" class="w-full accent-primary">
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-dark/80 backdrop-blur-xl border-t border-slate-800 py-5 px-6 mt-6">
+    <div class="container mx-auto text-center text-slate-400 text-sm">
+      <p>音律视界 - 音乐可视化播放器 &copy; 2023</p>
+      <p class="mt-1">使用 Web Audio API 和 Canvas 构建</p>
+    </div>
+  </footer>
+
+  <!-- 音频元素（隐藏） -->
+  <audio id="audioElement" hidden></audio>
+
+  <!-- JavaScript -->
+  <script>
+    // DOM 元素
+    const audioElement = document.getElementById('audioElement');
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const mobileUploadBtn = document.getElementById('mobileUploadBtn');
+    const initialMessage = document.getElementById('initialMessage');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorDetails = document.getElementById('errorDetails');
+    const retryBtn = document.getElementById('retryBtn');
+    const visualizerCanvas = document.getElementById('visualizer');
+    const visualizerCtx = visualizerCanvas.getContext('2d');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const progressBar = document.getElementById('progressBar');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    const totalTimeDisplay = document.getElementById('totalTime');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const trackTitle = document.getElementById('trackTitle');
+    const trackInfo = document.getElementById('trackInfo');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const audioUrlInput = document.getElementById('audioUrl');
+    const loadUrlBtn = document.getElementById('loadUrlBtn');
+    const animationSpeedSlider = document.getElementById('animationSpeed');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const loopBtn = document.getElementById('loopBtn');
+    
+    // 可视化相关变量
+    let audioContext;
+    let analyser;
+    let dataArray;
+    let animationId;
+    let isPlaying = false;
+    let currentVisualization = 'waveform';
+    let currentTheme = 'theme1';
+    let themeColors = {
+      theme1: ['#6366f1', '#8b5cf6'],
+      theme2: ['#10b981', '#34d399'],
+      theme3: ['#f59e0b', '#fbbf24'],
+      theme4: ['#ec4899', '#f472b6']
+    };
+    
+    // 支持的音频格式
+    const supportedFormats = [
+      'audio/mpeg',    // MP3
+      'audio/wav',     // WAV
+      'audio/flac',    // FLAC
+      'audio/aac',     // AAC
+      'audio/ogg',     // OGG
+      'audio/mp4',     // M4A
+      'audio/x-m4a'    // M4A 替代类型
+    ];
+    
+    // 初始化画布尺寸
+    function resizeCanvas() {
+      const container = visualizerCanvas.parentElement;
+      // 确保在移动设备上正确获取尺寸
+      const rect = container.getBoundingClientRect();
+      visualizerCanvas.width = rect.width;
+      visualizerCanvas.height = rect.height;
+      
+      // 如果分析器已初始化，重新设置缓冲区大小
+      if (analyser) {
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+      }
+    }
+    
+    // 监听窗口大小变化，调整画布尺寸
+    window.addEventListener('resize', resizeCanvas);
+    // 初始调整画布尺寸
+    resizeCanvas();
+    
+    // 初始化音频上下文和分析器
+    function initAudioContext() {
+      if (audioContext) return;
+      
+      try {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContext();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        const source = audioContext.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+      } catch (e) {
+        console.error('Web Audio API 初始化失败:', e);
+        showError('您的浏览器不支持Web Audio API，无法使用可视化功能。');
+      }
+    }
+    
+    // 格式化时间（秒 -> mm:ss）
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return '00:00';
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // 更新进度条和时间显示
+    function updateProgress() {
+      if (isNaN(audioElement.duration)) return;
+      
+      const progress = (audioElement.currentTime / audioElement.duration) * 100;
+      progressBar.style.width = `${progress}%`;
+      currentTimeDisplay.textContent = formatTime(audioElement.currentTime);
+      totalTimeDisplay.textContent = formatTime(audioElement.duration);
+    }
+    
+    // 播放/暂停切换
+    function togglePlayPause() {
+      if (!audioElement.src) return;
+      
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      if (isPlaying) {
+        audioElement.pause();
+        playPauseBtn.innerHTML = '<i class="fa fa-play text-xl sm:text-2xl"></i>';
+        cancelAnimationFrame(animationId);
+      } else {
+        audioElement.play()
+          .then(() => {
+            playPauseBtn.innerHTML = '<i class="fa fa-pause text-xl sm:text-2xl"></i>';
+            visualize();
+          })
+          .catch(error => {
+            console.error('播放失败:', error);
+            showError('播放失败，请尝试其他音频文件。');
+          });
+      }
+      
+      isPlaying = !isPlaying;
+    }
+    
+    // 跳转到音频的特定位置
+    function seekAudio(e) {
+      if (!audioElement.src) return;
+      
+      const progressBar = document.querySelector('.progress-bar');
+      const rect = progressBar.getBoundingClientRect();
+      const pos = (e.clientX || e.touches[0].clientX - rect.left) / rect.width;
+      audioElement.currentTime = pos * audioElement.duration;
+    }
+    
+    // 设置音量
+    function setVolume() {
+      audioElement.volume = volumeSlider.value;
+    }
+    
+    // 验证文件格式
+    function isValidAudioFile(file) {
+      // 检查MIME类型
+      if (supportedFormats.includes(file.type)) {
+        return true;
+      }
+      
+      // 检查文件扩展名作为备选方案
+      const ext = file.name.split('.').pop().toLowerCase();
+      const validExtensions = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'];
+      return validExtensions.includes(ext);
+    }
+    
+    // 显示错误信息
+    function showError(message) {
+      loadingIndicator.classList.add('hidden');
+      initialMessage.classList.add('hidden');
+      errorDetails.textContent = message;
+      errorMessage.classList.remove('hidden');
+    }
+    
+    // 隐藏错误信息
+    function hideError() {
+      errorMessage.classList.add('hidden');
+    }
+    
+    // 加载音频文件
+    function loadAudioFile(file) {
+      if (!file) return;
+      
+      // 验证文件类型
+      if (!isValidAudioFile(file)) {
+        showError('不支持的文件格式。请上传MP3、WAV、FLAC、AAC、OGG或M4A格式的音频文件。');
+        return;
+      }
+      
+      // 显示加载指示器
+      hideError();
+      loadingIndicator.classList.remove('hidden');
+      initialMessage.classList.add('hidden');
+      
+      try {
+        // 读取并加载音频文件
+        const fileURL = URL.createObjectURL(file);
+        audioElement.src = fileURL;
+        
+        // 更新轨道信息
+        trackTitle.textContent = file.name;
+        trackInfo.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · ${file.type || '音频文件'}`;
+        
+        // 准备播放
+        audioElement.onloadedmetadata = () => {
+          loadingIndicator.classList.add('hidden');
+          totalTimeDisplay.textContent = formatTime(audioElement.duration);
+          
+          // 初始化音频上下文
+          initAudioContext();
+          
+          // 自动播放
+          if (!isPlaying) {
+            togglePlayPause();
+          }
+        };
+        
+        audioElement.onerror = () => {
+          loadingIndicator.classList.add('hidden');
+          showError('无法加载音频文件，请尝试其他文件。');
+        };
+      } catch (error) {
+        console.error('加载音频文件时出错:', error);
+        loadingIndicator.classList.add('hidden');
+        showError('处理音频文件时出错，请重试。');
+      }
+    }
+    
+    // 从URL加载音频
+    function loadAudioFromURL(url) {
+      if (!url) return;
+      
+      // 显示加载指示器
+      hideError();
+      loadingIndicator.classList.remove('hidden');
+      initialMessage.classList.add('hidden');
+      
+      try {
+        audioElement.src = url;
+        
+        // 更新轨道信息
+        trackTitle.textContent = '来自URL的音频';
+        try {
+          trackInfo.textContent = new URL(url).hostname;
+        } catch {
+          trackInfo.textContent = '网络音频';
+        }
+        
+        // 准备播放
+        audioElement.onloadedmetadata = () => {
+          loadingIndicator.classList.add('hidden');
+          totalTimeDisplay.textContent = formatTime(audioElement.duration);
+          
+          // 初始化音频上下文
+          initAudioContext();
+          
+          // 自动播放
+          if (!isPlaying) {
+            togglePlayPause();
+          }
+        };
+        
+        audioElement.onerror = () => {
+          loadingIndicator.classList.add('hidden');
+          showError('无法从该URL加载音频，请检查URL是否正确或尝试其他链接。');
+        };
+      } catch (error) {
+        console.error('从URL加载音频时出错:', error);
+        loadingIndicator.classList.add('hidden');
+        showError('加载URL时出错，请检查链接格式是否正确。');
+      }
+    }
+    
+    // 切换可视化模式
+    function setVisualization(mode) {
+      currentVisualization = mode;
+      
+      // 更新按钮样式
+      document.querySelectorAll('.visualization-btn').forEach(btn => {
+        btn.classList.remove('bg-primary');
+        btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+      });
+      
+      const activeBtn = document.querySelector(`[data-visualization="${mode}"]`);
+      activeBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+      activeBtn.classList.add('bg-primary');
+      
+      // 如果正在播放，重新启动可视化
+      if (isPlaying) {
+        cancelAnimationFrame(animationId);
+        visualize();
+      }
+    }
+    
+    // 切换主题
+    function setTheme(theme) {
+      currentTheme = theme;
+      
+      // 更新按钮样式
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('border-white');
+        btn.classList.add('border-transparent', 'hover:border-white/50');
+      });
+      
+      const activeBtn = document.querySelector(`[data-theme="${theme}"]`);
+      activeBtn.classList.remove('border-transparent', 'hover:border-white/50');
+      activeBtn.classList.add('border-white');
+    }
+    
+    // 切换全屏模式
+    function toggleFullscreen() {
+      const visualizerContainer = visualizerCanvas.parentElement;
+      
+      if (!document.fullscreenElement) {
+        if (visualizerContainer.requestFullscreen) {
+          visualizerContainer.requestFullscreen();
+        } else if (visualizerContainer.webkitRequestFullscreen) {
+          visualizerContainer.webkitRequestFullscreen();
+        } else if (visualizerContainer.msRequestFullscreen) {
+          visualizerContainer.msRequestFullscreen();
+        }
+        fullscreenBtn.innerHTML = '<i class="fa fa-compress"></i>';
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+        fullscreenBtn.innerHTML = '<i class="fa fa-expand"></i>';
+      }
+    }
+    
+    // 切换随机播放
+    function toggleShuffle() {
+      shuffleBtn.classList.toggle('text-primary');
+      shuffleBtn.classList.toggle('text-slate-400');
+    }
+    
+    // 切换循环模式
+    function toggleLoop() {
+      audioElement.loop = !audioElement.loop;
+      loopBtn.classList.toggle('text-primary');
+      loopBtn.classList.toggle('text-slate-400');
+    }
+    
+    // 波形图可视化
+    function visualizeWaveform() {
+      const width = visualizerCanvas.width;
+      const height = visualizerCanvas.height;
+      
+      analyser.getByteTimeDomainData(dataArray);
+      
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      visualizerCtx.fillRect(0, 0, width, height);
+      
+      visualizerCtx.lineWidth = 2;
+      visualizerCtx.strokeStyle = themeColors[currentTheme][0];
+      visualizerCtx.beginPath();
+      
+      const sliceWidth = width / dataArray.length;
+      let x = 0;
+      
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * height / 2;
+        
+        if (i === 0) {
+          visualizerCtx.moveTo(x, y);
+        } else {
+          visualizerCtx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+      }
+      
+      visualizerCtx.lineTo(width, height / 2);
+      visualizerCtx.stroke();
+      
+      // 绘制第二条波形线，增加视觉效果
+      visualizerCtx.lineWidth = 1;
+      visualizerCtx.strokeStyle = themeColors[currentTheme][1];
+      visualizerCtx.beginPath();
+      
+      x = 0;
+      
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * height / 2 + 20;
+        
+        if (i === 0) {
+          visualizerCtx.moveTo(x, y);
+        } else {
+          visualizerCtx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+      }
+      
+      visualizerCtx.lineTo(width, height / 2 + 20);
+      visualizerCtx.stroke();
+    }
+    
+    // 频谱柱状图可视化
+    function visualizeBars() {
+      const width = visualizerCanvas.width;
+      const height = visualizerCanvas.height;
+      
+      analyser.getByteFrequencyData(dataArray);
+      
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      visualizerCtx.fillRect(0, 0, width, height);
+      
+      const barWidth = (width / dataArray.length) * 2.5;
+      let x = 0;
+      
+      for (let i = 0; i < dataArray.length; i++) {
+        const barHeight = (dataArray[i] / 255) * height;
+        
+        // 创建渐变颜色
+        const gradient = visualizerCtx.createLinearGradient(0, height - barHeight, 0, height);
+        gradient.addColorStop(0, themeColors[currentTheme][0]);
+        gradient.addColorStop(1, themeColors[currentTheme][1]);
+        
+        visualizerCtx.fillStyle = gradient;
+        visualizerCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+        
+        x += barWidth + 1;
+      }
+    }
+    
+    // 粒子效果可视化
+    function visualizeParticles() {
+      const width = visualizerCanvas.width;
+      const height = visualizerCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      analyser.getByteFrequencyData(dataArray);
+      
+      // 半透明背景，创建轨迹效果
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.3)';
+      visualizerCtx.fillRect(0, 0, width, height);
+      
+      const particleCount = 64;
+      const angleStep = (Math.PI * 2) / particleCount;
+      
+      for (let i = 0; i < particleCount; i++) {
+        // 从频谱数据中获取能量
+        const energy = dataArray[i * 4] / 255;
+        const size = 2 + energy * 8;
+        const distance = 50 + energy * 150 * animationSpeedSlider.value;
+        
+        // 计算粒子位置
+        const angle = angleStep * i + (Date.now() * 0.0005 * animationSpeedSlider.value);
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
+        
+        // 绘制粒子
+        visualizerCtx.beginPath();
+        visualizerCtx.arc(x, y, size, 0, Math.PI * 2);
+        visualizerCtx.fillStyle = themeColors[currentTheme][0];
+        visualizerCtx.fill();
+        
+        // 绘制粒子轨迹
+        visualizerCtx.beginPath();
+        visualizerCtx.arc(centerX, centerY, distance, angle, angle + angleStep * 0.8);
+        visualizerCtx.strokeStyle = `${themeColors[currentTheme][1]}80`;
+        visualizerCtx.lineWidth = size * 0.5;
+        visualizerCtx.stroke();
+      }
+    }
+    
+    // 圆形可视化
+    function visualizeCircular() {
+      const width = visualizerCanvas.width;
+      const height = visualizerCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const maxRadius = Math.min(width, height) / 2 - 20;
+      
+      analyser.getByteFrequencyData(dataArray);
+      
+      // 半透明背景，创建平滑动画效果
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      visualizerCtx.fillRect(0, 0, width, height);
+      
+      // 绘制同心圆
+      const rings = 5;
+      for (let r = 0; r < rings; r++) {
+        const radius = (maxRadius / rings) * (r + 1);
+        const energyIndex = Math.floor((dataArray.length / rings) * (r + 1));
+        const energy = dataArray[energyIndex] / 255;
+        
+        // 根据能量调整半径和透明度
+        const adjustedRadius = radius + energy * 20;
+        const alpha = 0.3 + energy * 0.7;
+        
+        visualizerCtx.beginPath();
+        visualizerCtx.arc(centerX, centerY, adjustedRadius, 0, Math.PI * 2);
+        visualizerCtx.strokeStyle = `${themeColors[currentTheme][0]}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+        visualizerCtx.lineWidth = 2;
+        visualizerCtx.stroke();
+      }
+      
+      // 绘制放射状线条
+      const lines = 64;
+      const angleStep = (Math.PI * 2) / lines;
+      
+      for (let i = 0; i < lines; i++) {
+        const angle = angleStep * i;
+        const energy = dataArray[i * 2] / 255;
+        const lineLength = maxRadius * energy * animationSpeedSlider.value;
+        
+        const x1 = centerX;
+        const y1 = centerY;
+        const x2 = centerX + Math.cos(angle) * lineLength;
+        const y2 = centerY + Math.sin(angle) * lineLength;
+        
+        visualizerCtx.beginPath();
+        visualizerCtx.moveTo(x1, y1);
+        visualizerCtx.lineTo(x2, y2);
+        visualizerCtx.strokeStyle = themeColors[currentTheme][1];
+        visualizerCtx.lineWidth = 2;
+        visualizerCtx.stroke();
+      }
+    }
+    
+    // 主可视化函数
+    function visualize() {
+      if (!analyser) return;
+      
+      // 根据当前选择的可视化模式绘制
+      switch (currentVisualization) {
+        case 'waveform':
+          visualizeWaveform();
+          break;
+        case 'bars':
+          visualizeBars();
+          break;
+        case 'particles':
+          visualizeParticles();
+          break;
+        case 'circular':
+          visualizeCircular();
+          break;
+      }
+      
+      // 继续动画循环
+      animationId = requestAnimationFrame(visualize);
+    }
+    
+    // 事件监听器
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    
+    // 支持触摸和鼠标事件
+    const progressBarContainer = document.querySelector('.progress-bar');
+    progressBarContainer.addEventListener('click', seekAudio);
+    progressBarContainer.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // 防止触摸事件冒泡
+      seekAudio(e);
+    });
+    
+    audioElement.addEventListener('timeupdate', updateProgress);
+    volumeSlider.addEventListener('input', setVolume);
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    loadUrlBtn.addEventListener('click', () => loadAudioFromURL(audioUrlInput.value));
+    shuffleBtn.addEventListener('click', toggleShuffle);
+    loopBtn.addEventListener('click', toggleLoop);
+    retryBtn.addEventListener('click', () => {
+      hideError();
+      initialMessage.classList.remove('hidden');
+    });
+    
+    // 音频结束时重置播放状态
+    audioElement.addEventListener('ended', () => {
+      isPlaying = false;
+      playPauseBtn.innerHTML = '<i class="fa fa-play text-xl sm:text-2xl"></i>';
+      cancelAnimationFrame(animationId);
+    });
+    
+    // 移动端专用上传按钮
+    mobileUploadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+    
+    // 上传区域点击事件
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    // 文件选择事件
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        loadAudioFile(e.target.files[0]);
+      }
+    });
+    
+    // 拖放功能 - 优化移动设备体验
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      
+      if (e.dataTransfer.files.length > 0) {
+        loadAudioFile(e.dataTransfer.files[0]);
+      }
+    });
+    
+    // 触摸设备上的拖放模拟（简化版）
+    let touchDragging = false;
+    uploadArea.addEventListener('touchstart', (e) => {
+      // 只在有文件时处理
+      if (e.touches.length === 1) {
+        touchDragging = true;
+      }
+    });
+    
+    uploadArea.addEventListener('touchmove', (e) => {
+      if (touchDragging) {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+      }
+    });
+    
+    uploadArea.addEventListener('touchend', (e) => {
+      touchDragging = false;
+      uploadArea.classList.remove('drag-over');
+    });
+    
+    // 可视化模式选择
+    document.querySelectorAll('.visualization-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setVisualization(btn.dataset.visualization);
+      });
+    });
+    
+    // 主题选择
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTheme(btn.dataset.theme);
+      });
+    });
+    
+    // URL输入框回车事件
+    audioUrlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadAudioFromURL(audioUrlInput.value);
+      }
+    });
+    
+    // 初始化音量
+    setVolume();
+    
+    // 移动端友好提示：首次点击时激活音频上下文
+    document.body.addEventListener('click', () => {
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }, { once: true });
+  </script>
+</body>
+</html>
