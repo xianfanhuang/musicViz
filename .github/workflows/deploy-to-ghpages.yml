@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ "test" ] # 重要：设置为您的生产分支 'test'
+    branches: [ "" ] # 重要：设置为您的生产分支 'test'
   workflow_dispatch:
 
 permissions:
