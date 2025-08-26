@@ -33,4 +33,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./client/dist  # 正确指向 Vite 构建产物
-          force_orphan: true  # 清空旧 Pages 内容，避免干
+          force_orphan: true  # 清空旧 Pages 内容，避免干扰 
