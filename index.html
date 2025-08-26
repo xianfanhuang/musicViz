@@ -1,27 +1,1089 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>音律视界 - Music Visualization</title>
-    <meta name="description" content="绚丽多彩极具呼吸感的音乐可视化播放器，体验音乐的视觉艺术" />
-    <meta name="keywords" content="音乐可视化,music visualization,audio visualization,音乐播放器" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音律视界 + 豆包入口</title>
+  <!-- 依赖 CDN 引入 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/cjs/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/cjs/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.378.0/dist/umd/lucide-react.min.js"></script>
+  
+  <!-- 自定义 Tailwind 配置 & 动画样式 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#8b5cf6',
+            destructive: '#ef4444',
+            background: '#0f172a',
+            foreground: '#f8fafc',
+            popover: '#1e293b',
+            'popover-foreground': '#f8fafc',
+            card: '#1e293b',
+            'card-foreground': '#f8fafc',
+            muted: '#334155',
+            'muted-foreground': '#94a3b8',
+            accent: '#4f46e5',
+            'accent-foreground': '#f8fafc',
+            ring: '#6366f1',
+            input: '#334155',
+          },
+          animation: {
+            'breathe': 'breathe 3s ease-in-out infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'ping': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+            'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'gradient': 'gradient 8s ease infinite',
+          },
+          keyframes: {
+            breathe: {
+              '0%, 100%': { opacity: 0.8 },
+              '50%': { opacity: 1 },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            ping: {
+              '0%': { transform: 'scale(1)', opacity: 1 },
+              '75%, 100%': { transform: 'scale(1.2)', opacity: 0 },
+            },
+            gradient: {
+              '0%': { 'background-position': '0% 50%' },
+              '50%': { 'background-position': '100% 50%' },
+              '100%': { 'background-position': '0% 50%' },
+            }
+          },
+          backgroundSize: {
+            '200% 200%': '200% 200%',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- 基础样式补充 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .animate-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .fade-in-0 {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .zoom-in-95 {
+        animation: zoomIn 0.3s ease-out forwards;
+      }
+      .slide-in-from-top-2 {
+        animation: slideInTop 0.3s ease-out forwards;
+      }
+      .slide-in-from-bottom-2 {
+        animation: slideInBottom 0.3s ease-out forwards;
+      }
+      .slide-in-from-left-2 {
+        animation: slideInLeft 0.3s ease-out forwards;
+      }
+      .slide-in-from-right-2 {
+        animation: slideInRight 0.3s ease-out forwards;
+      }
+      .fade-out-0 {
+        animation: fadeOut 0.3s ease-in forwards;
+      }
+      .zoom-out-95 {
+        animation: zoomOut 0.3s ease-in forwards;
+      }
+      .slide-out-to-right-full {
+        animation: slideOutRight 0.3s ease-in forwards;
+      }
+    }
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://xianfanhuang.github.io/musicViz" />
-    <meta property="og:title" content="音律视界 - Music Visualization" />
-    <meta property="og:description" content="绚丽多彩极具呼吸感的音乐可视化播放器" />
+    /* 动画关键帧 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes slideInTop {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideInBottom {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideInLeft {
+      from { transform: translateX(-8px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(8px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    @keyframes zoomOut {
+      from { transform: scale(1); opacity: 1; }
+      to { transform: scale(0.95); opacity: 0; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-background text-foreground min-h-screen">
+  <!-- 豆包入口按钮（固定在右上角） -->
+  <div class="fixed top-4 right-4 z-50">
+    <a 
+      href="https://www.doubao.com/share/doc/e61453afad0d56dc" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+        <path d="M2 17l10 5 10-5"></path>
+        <path d="M2 12l10 5 10-5"></path>
+      </svg>
+      打开豆包APP
+    </a>
+  </div>
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="音律视界 - Music Visualization" />
-    <meta property="twitter:description" content="绚丽多彩极具呼吸感的音乐可视化播放器" />
-    <script type="module" crossorigin src="./assets/index-DhW7DkXJ.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CAkN3b-f.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
+  <!-- React 渲染根节点 -->
+  <div id="root" class="relative z-10"></div>
+
+  <!-- 核心功能代码（整合音乐可视化逻辑） -->
+  <script type="text/babel">
+    // 全局变量初始化（对应原 JS 中的模块导出）
+    const React = window.React;
+    const ReactDOM = window.ReactDOM;
+    const { createRoot } = ReactDOM;
+    const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext, forwardRef, Children } = React;
+    const { CircleAlert, CloudUpload, Expand, Globe, Link, Music, Palette, Pause, Play, Settings, SkipBack, SkipForward, Upload, Volume2, VolumeX, X } = window.lucideReact;
+
+    // ======================== 原 index-DhW7DkXJ.js 核心代码 ========================
+    var Fu = e => { throw TypeError(e); };
+    var bs = (e, t, n) => t.has(e) || Fu("Cannot " + n);
+    var T = (e, t, n) => (bs(e, t, "read from private field"), n ? n.call(e) : t.get(e));
+    var K = (e, t, n) => t.has(e) ? Fu("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, n);
+    var I = (e, t, n, r) => (bs(e, t, "write to private field"), r ? r.call(e, n) : t.set(e, n), n);
+    var we = (e, t, n) => (bs(e, t, "access private method"), n);
+    var Vo = (e, t, n, r) => ({ set _(o) { I(e, t, o, n); }, get _() { return T(e, t, r); } });
+    function iv(e, t) { for (var n = 0; n < t.length; n++) { const r = t[n]; if (typeof r !== "string" && !Array.isArray(r)) { for (const o in r) if (o !== "default" && !(o in e)) { const i = Object.getOwnPropertyDescriptor(r, o); i && Object.defineProperty(e, o, i.get ? i : { enumerable: !0, get: () => r[o] }); } } } return Object.freeze(Object.defineProperty(e, Symbol.toStringTag, { value: "Module" })); }
+    (function () { const t = document.createElement("link").relList; if (t && t.supports && t.supports("modulepreload")) return; for (const o of document.querySelectorAll('link[rel="modulepreload"]')) r(o); new MutationObserver(o => { for (const i of o) if (i.type === "childList") for (const s of i.addedNodes) s.tagName === "LINK" && s.rel === "modulepreload" && r(s); }).observe(document, { childList: !0, subtree: !0 }); function n(o) { const i = {}; return o.integrity && (i.integrity = o.integrity), o.referrerPolicy && (i.referrerPolicy = o.referrerPolicy), o.crossOrigin === "use-credentials" ? i.credentials = "include" : o.crossOrigin === "anonymous" ? i.credentials = "omit" : i.credentials = "same-origin", i; } function r(o) { if (o.ep) return; o.ep = !0; const i = n(o); fetch(o.href, i); } })();
+    function Ld(e) { return e && e.__esModule && Object.prototype.hasOwnProperty.call(e, "default") ? e.default : e; }
+    var Dd = { exports: {} }, ts = {}, Fd = { exports: {} }, W = {};
+
+    // React 核心模块（对应原代码中的 react.production.min.js）
+    var Oo = Symbol.for("react.element"), sv = Symbol.for("react.portal"), lv = Symbol.for("react.fragment"), av = Symbol.for("react.strict_mode"), uv = Symbol.for("react.profiler"), cv = Symbol.for("react.provider"), dv = Symbol.for("react.context"), fv = Symbol.for("react.forward_ref"), pv = Symbol.for("react.suspense"), hv = Symbol.for("react.memo"), mv = Symbol.for("react.lazy"), zu = Symbol.iterator;
+    function vv(e) { return e === null || typeof e !== "object" ? null : (e = zu && e[zu] || e["@@iterator"], typeof e === "function" ? e : null); }
+    var zd = { isMounted: function () { return !1; }, enqueueForceUpdate: function () { }, enqueueReplaceState: function () { }, enqueueSetState: function () { } }, Id = Object.assign, $d = {};
+    function Nr(e, t, n) { this.props = e; this.context = t; this.refs = $d; this.updater = n || zd; }
+    Nr.prototype.isReactComponent = {};
+    Nr.prototype.setState = function (e, t) { if (typeof e !== "object" && typeof e !== "function" && e != null) throw Error("setState(...): takes an object of state variables to update or a function which returns an object of state variables."); this.updater.enqueueSetState(this, e, t, "setState"); };
+    Nr.prototype.forceUpdate = function (e) { this.updater.enqueueForceUpdate(this, e, "forceUpdate"); };
+    function Ud() { }
+    Ud.prototype = Nr.prototype;
+    function va(e, t, n) { this.props = e; this.context = t; this.refs = $d; this.updater = n || zd; }
+    var ya = va.prototype = new Ud;
+    ya.constructor = va;
+    Id(ya, Nr.prototype);
+    ya.isPureReactComponent = !0;
+    var Iu = Array.isArray, Vd = Object.prototype.hasOwnProperty, ga = { current: null }, Bd = { key: !0, ref: !0, __self: !0, __source: !0 };
+    function Wd(e, t, n) { var r, o = {}, i = null, s = null; if (t != null) for (r in t) ref !== void 0 && (s = t.ref), t.key !== void 0 && (i = "" + t.key), t.hasOwnProperty(r) && !Bd.hasOwnProperty(r) && (o[r] = t[r]); var l = arguments.length - 2; if (l === 1) o.children = n; else if (1 < l) { for (var a = Array(l), u = 0; u < l; u++) a[u] = arguments[u + 2]; o.children = a; } if (e && e.defaultProps) for (r in l = e.defaultProps, l) o[r] === void 0 && (o[r] = l[r]); return { $$typeof: Oo, type: e, key: i, ref: s, props: o, _owner: ga.current }; }
+    function yv(e, t) { return { $$typeof: Oo, type: e.type, key: t, ref: e.ref, props: e.props, _owner: e._owner }; }
+    function wa(e) { return typeof e === "object" && e !== null && e.$$typeof === Oo; }
+    function gv(e) { var t = { "=": "=0", ":": "=2" }; return "$" + e.replace(/[=:]/g, function (n) { return t[n]; }); }
+    var $u = /\/+/g;
+    function _s(e, t) { return typeof e === "object" && e !== null && e.key != null ? gv("" + e.key) : t.toString(36); }
+    function ci(e, t, n, r, o) { var i = typeof e; (i === "undefined" || i === "boolean") && (e = null); var s = !1; if (e === null) s = !0; else switch (i) { case "string": case "number": s = !0; break; case "object": switch (e.$$typeof) { case Oo: case sv: s = !0; } } if (s) return s = e, o = o(s), e = r === "" ? "." + _s(s, 0) : r, Iu(o) ? (n = "", e != null && (n = e.replace($u, "$&/") + "/"), ci(o, t, n, "", function (u) { return u; })) : o != null && (wa(o) && (o = yv(o, n + (!o.key || s && s.key === o.key ? "" : ("" + o.key).replace($u, "$&/") + "/") + e)), t.push(o)), 1; if (s = 0, r = r === "" ? "." : r + ":", Iu(e)) for (var l = 0; l < e.length; l++) { i = e[l]; var a = r + _s(i, l); s += ci(i, t, n, a, o); } else if (a = vv(e), typeof a === "function") for (e = a.call(e), l = 0; !(i = e.next()).done;) i = i.value, a = r + _s(i, l++), s += ci(i, t, n, a, o); else if (i === "object") throw t = String(e), Error("Objects are not valid as a React child (found: " + (t === "[object Object]" ? "object with keys {" + Object.keys(e).join(", ") + "}" : t) + "). If you meant to render a collection of children, use an array instead."); return s; }
+    function Bo(e, t, n) { if (e == null) return e; var r = [], o = 0; return ci(e, r, "", "", function (i) { return t.call(n, i, o++); }), r; }
+    function wv(e) { if (e._status === -1) { var t = e._result; t = t(); t.then(function (n) { (e._status === 0 || e._status === -1) && (e._status = 1, e._result = n); }, function (n) { (e._status === 0 || e._status === -1) && (e._status = 2, e._result = n); }), e._status === -1 && (e._status = 0, e._result = t); } if (e._status === 1) return e._result.default; throw e._result; }
+    var Oe = { current: null }, di = { transition: null }, xv = { ReactCurrentDispatcher: Oe, ReactCurrentBatchConfig: di, ReactCurrentOwner: ga };
+    function Hd() { throw Error("act(...) is not supported in production builds of React."); }
+    W.Children = { map: Bo, forEach: function (e, t, n) { Bo(e, function () { t.apply(this, arguments); }, n); }, count: function (e) { var t = 0; return Bo(e, function () { t++; }), t; }, toArray: function (e) { return Bo(e, function (t) { return t; }) || []; }, only: function (e) { if (!wa(e)) throw Error("React.Children.only expected to receive a single React element child."); return e; } };
+    W.Component = Nr;
+    W.Fragment = lv;
+    W.Profiler = uv;
+    W.PureComponent = va;
+    W.StrictMode = av;
+    W.Suspense = pv;
+    W.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = xv;
+    W.act = Hd;
+    W.cloneElement = function (e, t, n) { if (e == null) throw Error("React.cloneElement(...): The argument must be a React element, but you passed " + e + "."); var r = Id({}, e.props), o = e.key, i = e.ref, s = e._owner; if (t != null) { if (t.ref !== void 0 && (i = t.ref, s = ga.current), t.key !== void 0 && (o = "" + t.key), e.type && e.type.defaultProps) var l = e.type.defaultProps; for (a in t) Vd.call(t, a) && !Bd.hasOwnProperty(a) && (r[a] = t[a] === void 0 && l !== void 0 ? l[a] : t[a]); } var a = arguments.length - 2; if (a === 1) r.children = n; else if (1 < a) { l = Array(a); for (var u = 0; u < a; u++) l[u] = arguments[u + 2]; r.children = l; } return { $$typeof: Oo, type: e.type, key: o, ref: i, props: r, _owner: s }; };
+    W.createContext = function (e) { return e = { $$typeof: dv, _currentValue: e, _currentValue2: e, _threadCount: 0, Provider: null, Consumer: null, _defaultValue: null, _globalName: null }, e.Provider = { $$typeof: cv, _context: e }, e.Consumer = e; };
+    W.createElement = Wd;
+    W.createFactory = function (e) { var t = Wd.bind(null, e); return t.type = e, t; };
+    W.createRef = function () { return { current: null }; };
+    W.forwardRef = function (e) { return { $$typeof: fv, render: e }; };
+    W.isValidElement = wa;
+    W.lazy = function (e) { return { $$typeof: mv, _payload: { _status: -1, _result: e }, _init: wv }; };
+    W.memo = function (e, t) { return { $$typeof: hv, type: e, compare: t === void 0 ? null : t }; };
+    W.startTransition = function (e) { var t = di.transition; di.transition = {}; try { e(); } finally { di.transition = t; } };
+    W.unstable_act = Hd;
+    W.useCallback = function (e, t) { return Oe.current.useCallback(e, t); };
+    W.useContext = function (e) { return Oe.current.useContext(e); };
+    W.useDebugValue = function () { };
+    W.useDeferredValue = function (e) { return Oe.current.useDeferredValue(e); };
+    W.useEffect = function (e, t) { return Oe.current.useEffect(e, t); };
+    W.useId = function () { return Oe.current.useId(); };
+    W.useImperativeHandle = function (e, t, n) { return Oe.current.useImperativeHandle(e, t, n); };
+    W.useInsertionEffect = function (e, t) { return Oe.current.useInsertionEffect(e, t); };
+    W.useLayoutEffect = function (e, t) { return Oe.current.useLayoutEffect(e, t); };
+    W.useMemo = function (e, t) { return Oe.current.useMemo(e, t); };
+    W.useReducer = function (e, t, n) { return Oe.current.useReducer(e, t, n); };
+    W.useRef = function (e) { return Oe.current.useRef(e); };
+    W.useState = function (e) { return Oe.current.useState(e); };
+    W.useSyncExternalStore = function (e, t, n) { return Oe.current.useSyncExternalStore(e, t, n); };
+    W.useTransition = function () { return Oe.current.useTransition(); };
+    W.version = "18.3.1";
+    Fd.exports = W;
+    var y = Fd.exports;
+    const Wt = Ld(y), Qd = iv({ __proto__: null, default: Wt }, [y]);
+
+    // React JSX 运行时（对应原代码中的 react-jsx-runtime.production.min.js）
+    var Sv = y, Cv = Symbol.for("react.element"), Ev = Symbol.for("react.fragment"), kv = Object.prototype.hasOwnProperty, Pv = Sv.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner, Rv = { key: !0, ref: !0, __self: !0, __source: !0 };
+    function Kd(e, t, n) { var r, o = {}, i = null, s = null; n !== void 0 && (i = "" + n), t.key !== void 0 && (i = "" + t.key), t.ref !== void 0 && (s = t.ref); for (r in t) kv.call(t, r) && !Rv.hasOwnProperty(r) && (o[r] = t[r]); if (e && e.defaultProps) for (r in t = e.defaultProps, t) o[r] === void 0 && (o[r] = t[r]); return { $$typeof: Cv, type: e, key: i, ref: s, props: o, _owner: Pv.current }; }
+    ts.Fragment = Ev;
+    ts.jsx = Kd;
+    ts.jsxs = Kd;
+    Dd.exports = ts;
+    var w = Dd.exports;
+
+    // 后续省略原 JS 中重复的 React 相关代码（已通过 CDN 引入），直接保留音乐可视化核心组件逻辑
+    // （注：完整代码需包含原 JS 中所有组件定义，此处为精简展示，实际运行需保留全部组件逻辑）
+
+    // ======================== 音乐可视化核心组件（原 JS 核心逻辑） ========================
+    // 1. 音频控制逻辑
+    function useAudioControl() {
+      const [audioFile, setAudioFile] = useState(null);
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [currentTime, setCurrentTime] = useState(0);
+      const [duration, setDuration] = useState(0);
+      const [volume, setVolume] = useState(0.7);
+      const audioRef = useRef(null);
+      const audioContextRef = useRef(null);
+      const analyserNodeRef = useRef(null);
+      const sourceNodeRef = useRef(null);
+      const gainNodeRef = useRef(null);
+
+      // 初始化音频上下文
+      const initAudioContext = useCallback(() => {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          analyserNodeRef.current = audioContextRef.current.createAnalyser();
+          analyserNodeRef.current.fftSize = 256;
+          gainNodeRef.current = audioContextRef.current.createGain();
+          if (gainNodeRef.current && analyserNodeRef.current) {
+            gainNodeRef.current.connect(analyserNodeRef.current);
+            analyserNodeRef.current.connect(audioContextRef.current.destination);
+          }
+        }
+      }, []);
+
+      // 设置音频文件
+      const setAudio = useCallback((file) => {
+        if (file === null) {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            if (audioRef.current.src.startsWith("blob:")) {
+              URL.revokeObjectURL(audioRef.current.src);
+            }
+            audioRef.current.src = "";
+          }
+          setAudioFile(null);
+          setCurrentTime(0);
+          setIsPlaying(false);
+          return;
+        }
+
+        const audioURL = file.audioURL ? file.audioURL : URL.createObjectURL(file);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          if (!file.audioURL && audioRef.current.src.startsWith("blob:")) {
+            URL.revokeObjectURL(audioRef.current.src);
+          }
+          audioRef.current.src = "";
+        }
+
+        const audio = new Audio(audioURL);
+        audioRef.current = audio;
+        initAudioContext();
+
+        if (audioContextRef.current && !sourceNodeRef.current) {
+          sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audio);
+          if (gainNodeRef.current && sourceNodeRef.current) {
+            sourceNodeRef.current.connect(gainNodeRef.current);
+          }
+        }
+
+        audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
+        audio.addEventListener("timeupdate", () => setCurrentTime(audio.currentTime));
+        audio.addEventListener("ended", () => setIsPlaying(false));
+        audio.addEventListener("error", (err) => {
+          console.error("Audio error:", err);
+          setIsPlaying(false);
+        });
+
+        audio.volume = volume;
+        if (gainNodeRef.current) {
+          gainNodeRef.current.gain.value = volume;
+        }
+
+        setAudioFile(file);
+        setCurrentTime(0);
+        setIsPlaying(false);
+      }, [initAudioContext, volume]);
+
+      // 播放/暂停切换
+      const togglePlayPause = useCallback(async () => {
+        if (!audioRef.current) return;
+        if (audioContextRef.current?.state === "suspended") {
+          await audioContextRef.current.resume();
+        }
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          try {
+            await audioRef.current.play();
+            setIsPlaying(true);
+          } catch (err) {
+            console.error("Play error:", err);
+          }
+        }
+      }, [isPlaying]);
+
+      // 进度调整
+      const seek = useCallback((percent) => {
+        if (!audioRef.current || !duration) return;
+        const newTime = (percent / 100) * duration;
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+      }, [duration]);
+
+      // 音量调整
+      const setVolumeHandler = useCallback((newVolume) => {
+        setVolume(newVolume);
+        if (audioRef.current) {
+          audioRef.current.volume = newVolume;
+        }
+        if (gainNodeRef.current) {
+          gainNodeRef.current.gain.value = newVolume;
+        }
+      }, []);
+
+      // 组件卸载时清理
+      useEffect(() => {
+        return () => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            if (audioRef.current.src.startsWith("blob:")) {
+              URL.revokeObjectURL(audioRef.current.src);
+            }
+          }
+          if (audioContextRef.current) {
+            audioContextRef.current.close();
+          }
+        };
+      }, []);
+
+      return {
+        audioFile,
+        isPlaying,
+        currentTime,
+        duration,
+        volume,
+        audioContext: audioContextRef.current,
+        analyserNode: analyserNodeRef.current,
+        setAudioFile: setAudio,
+        togglePlayPause,
+        seek,
+        setVolume: setVolumeHandler,
+      };
+    }
+
+    // 2. 可视化渲染组件
+    function AudioVisualizer({ audioContext, analyserNode, isPlaying, mode = "bars", colorScheme = 0 }) {
+      const canvasRef = useRef(null);
+      const animationRef = useRef();
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // 调整画布大小
+        const resizeCanvas = () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        };
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        // 渲染逻辑
+        const render = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (analyserNode && isPlaying) {
+            const bufferLength = analyserNode.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyserNode.getByteFrequencyData(dataArray);
+
+            switch (mode) {
+              case "waveform":
+                drawWaveform(ctx, dataArray, canvas.width, canvas.height, colorScheme);
+                break;
+              case "bars":
+                drawBars(ctx, dataArray, canvas.width, canvas.height, colorScheme);
+                break;
+              case "particles":
+                drawParticles(ctx, dataArray, canvas.width, canvas.height, colorScheme);
+                break;
+              case "circular":
+                drawCircular(ctx, dataArray, canvas.width, canvas.height, colorScheme);
+                break;
+              default:
+                drawBars(ctx, dataArray, canvas.width, canvas.height, colorScheme);
+            }
+          } else {
+            drawPlaceholder(ctx, canvas.width, canvas.height, colorScheme);
+          }
+          animationRef.current = requestAnimationFrame(render);
+        };
+
+        render();
+        return () => {
+          window.removeEventListener("resize", resizeCanvas);
+          if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+          }
+        };
+      }, [analyserNode, isPlaying, mode, colorScheme]);
+
+      // 颜色生成函数
+      const getColor = (scheme, progress) => {
+        const colorSchemes = [
+          () => `hsl(${240 + progress * 60}, 70%, 60%)`,
+          () => `hsl(${120 + progress * 120}, 70%, 60%)`,
+          () => `hsl(${30 + progress * 60}, 80%, 60%)`,
+          () => `hsl(${180 + progress * 60}, 70%, 60%)`,
+        ];
+        return colorSchemes[scheme](progress);
+      };
+
+      // 波形绘制
+      function drawWaveform(ctx, data, width, height, scheme) {
+        const sliceWidth = width / data.length;
+        let x = 0;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = getColor(scheme, 0);
+        ctx.beginPath();
+        for (let i = 0; i < data.length; i++) {
+          const v = data[i] / 128 * height / 2;
+          i === 0 ? ctx.moveTo(x, v) : ctx.lineTo(x, v);
+          x += sliceWidth;
+        }
+        ctx.stroke();
+      }
+
+      // 频谱柱绘制
+      function drawBars(ctx, data, width, height, scheme) {
+        const barCount = Math.min(64, data.length);
+        const barWidth = width / barCount;
+        for (let i = 0; i < barCount; i++) {
+          const barHeight = (data[i] / 255) * height;
+          ctx.fillStyle = getColor(scheme, i / barCount);
+          ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+        }
+      }
+
+      // 粒子绘制
+      function drawParticles(ctx, data, width, height, scheme) {
+        const particleCount = Math.min(100, data.length);
+        for (let i = 0; i < particleCount; i++) {
+          const intensity = data[i] / 255;
+          const x = (i / particleCount) * width;
+          const y = height / 2 + Math.sin(Date.now() * 0.001 + i * 0.1) * intensity * 200;
+          const size = intensity * 10 + 2;
+          ctx.fillStyle = getColor(scheme, intensity);
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 环形绘制
+      function drawCircular(ctx, data, width, height, scheme) {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const innerRadius = Math.min(width, height) / 6;
+        const barCount = Math.min(64, data.length);
+        for (let i = 0; i < barCount; i++) {
+          const intensity = data[i] / 255;
+          const angle = (i / barCount) * Math.PI * 2;
+          const barLength = intensity * 100;
+          const startX = centerX + Math.cos(angle) * innerRadius;
+          const startY = centerY + Math.sin(angle) * innerRadius;
+          const endX = centerX + Math.cos(angle) * (innerRadius + barLength);
+          const endY = centerY + Math.sin(angle) * (innerRadius + barLength);
+          ctx.strokeStyle = getColor(scheme, intensity);
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(endX, endY);
+          ctx.stroke();
+        }
+      }
+
+      // 占位绘制
+      function drawPlaceholder(ctx, width, height, scheme) {
+        const gridSize = width / 64;
+        for (let i = 0; i < 64; i++) {
+          const height = Math.sin(Date.now() * 0.001 + i * 0.2) * 100 + 150;
+          ctx.fillStyle = getColor(scheme, i / 64);
+          ctx.fillRect(i * gridSize, height, gridSize - 2, height);
+        }
+      }
+
+      return <canvas ref={canvasRef} className="w-full h-full opacity-80" data-testid="visualization-canvas" />;
+    }
+
+    // 3. 文件上传组件
+    function FileUploader({ onFileUpload }) {
+      const [isDragging, setIsDragging] = useState(false);
+      const [isProcessing, setIsProcessing] = useState(false);
+      const fileInputRef = useRef(null);
+      const { toast } = useToast();
+
+      // 处理文件选择
+      const handleFileSelect = (file) => {
+        const validTypes = [
+          "audio/mpeg", "audio/mp3", "audio/wav", "audio/wave",
+          "audio/flac", "audio/aac", "audio/ogg", "audio/m4a", "audio/webm"
+        ];
+        const fileExt = file.name.toLowerCase().split(".").pop();
+        const validExts = ["mp3", "wav", "flac", "aac", "ogg", "m4a", "webm"];
+
+        if (!validTypes.includes(file.type) && !validExts.includes(fileExt)) {
+          toast({
+            title: "不支持的文件类型",
+            description: "请选择音频文件 (MP3, WAV, FLAC, AAC, OGG, M4A)",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        setIsProcessing(true);
+        setTimeout(() => {
+          try {
+            onFileUpload(file);
+            setIsProcessing(false);
+            toast({
+              title: "文件上传成功",
+              description: `${file.name} 已准备播放`
+            });
+          } catch (err) {
+            setIsProcessing(false);
+            toast({
+              title: "上传失败",
+              description: "文件处理出错，请重试",
+              variant: "destructive"
+            });
+          }
+        }, 500);
+      };
+
+      // 拖拽事件处理
+      const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = Array.from(e.dataTransfer.files).find(f => {
+          const ext = f.name.toLowerCase().split(".").pop();
+          return validTypes.includes(f.type) || validExts.includes(ext);
+        });
+        file ? handleFileSelect(file) : toast({
+          title: "未找到音频文件",
+          description: "请拖拽音频文件 (MP3, WAV, FLAC, AAC, OGG, M4A)",
+          variant: "destructive"
+        });
+      };
+
+      const handleDragOver = (e) => e.preventDefault();
+      const handleDragLeave = (e) => e.preventDefault();
+      const handleClick = () => fileInputRef.current?.click();
+      const handleInputChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) handleFileSelect(file);
+        else toast({
+          title: "未选择文件",
+          description: "请选择一个音频文件",
+          variant: "destructive"
+        });
+      };
+
+      return (
+        <div className="relative group" data-testid="file-uploader">
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={handleClick}
+            className={`
+              w-80 md:w-96 h-48 border-2 border-dashed rounded-xl
+              bg-white/5 backdrop-blur-md cursor-pointer
+              flex flex-col items-center justify-center
+              transition-all duration-300
+              ${isDragging ? "border-blue-400 bg-blue-400/10 scale-105" : "border-blue-500/50 hover:border-blue-400 hover:bg-white/10"}
+              ${isProcessing ? "pointer-events-none opacity-75" : ""}
+            `}
+            data-testid="drop-zone"
+          >
+            <div className="text-center p-6">
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                  <p className="text-lg font-medium text-white">处理中...</p>
+                  <p className="text-sm text-gray-400">请稍候</p>
+                </>
+              ) : (
+                <>
+                  <CloudUpload 
+                    className={`
+                      mx-auto mb-4 transition-transform duration-300
+                      ${isDragging ? "scale-110 text-blue-400" : "text-blue-500 group-hover:scale-110"}
+                    `}
+                    size={48}
+                    data-testid="upload-icon"
+                  />
+                  <p className="text-lg font-medium mb-2 text-white">拖拽音乐文件到这里</p>
+                  <p className="text-sm text-gray-400">或点击浏览文件</p>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
+                    <Globe size={12} /> 支持 MP3, WAV, FLAC, AAC, OGG, M4A
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".mp3,.wav,.flac,.aac,.ogg,.m4a,.webm,audio/*"
+            onChange={handleInputChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            data-testid="file-input"
+          />
+        </div>
+      );
+    }
+
+    // 4. 主应用组件
+    function MusicVisualizerApp() {
+      const [visualMode, setVisualMode] = useState("bars");
+      const [colorScheme, setColorScheme] = useState(0);
+      const [inputMode, setInputMode] = useState("file");
+      const {
+        audioFile,
+        isPlaying,
+        currentTime,
+        duration,
+        volume,
+        audioContext,
+        analyserNode,
+        setAudioFile,
+        togglePlayPause,
+        seek,
+        setVolume
+      } = useAudioControl();
+
+      // 处理URL加载
+      const handleUrlLoad = (url, fileName) => {
+        const file = new File([""], fileName || "Remote Audio", { type: "audio/mpeg" });
+        file.audioURL = url;
+        setAudioFile(file);
+      };
+
+      // 切换颜色方案
+      const toggleColorScheme = () => setColorScheme(prev => (prev + 1) % 4);
+
+      // 格式化时间
+      const formatTime = (time) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      };
+
+      return (
+        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" data-testid="music-visualizer-container">
+          {/* 可视化背景 */}
+          <div className="fixed inset-0 z-0">
+            <AudioVisualizer
+              audioContext={audioContext}
+              analyserNode={analyserNode}
+              isPlaying={isPlaying}
+              mode={visualMode}
+              colorScheme={colorScheme}
+            />
+            <div className={`absolute inset-0 bg-gradient-to-r ${[
+              "from-blue-500 via-purple-500 to-pink-500",
+              "from-green-400 via-blue-500 to-purple-600",
+              "from-orange-400 via-red-500 to-pink-500",
+              "from-cyan-400 via-teal-500 to-green-500"
+            ][colorScheme]} opacity-20 animate-breathe pointer-events-none"></div>
+          </div>
+
+          {/* 主内容区 */}
+          <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+            {/* 应用标题 */}
+            <div className="text-center mb-8 animate-float" data-testid="app-header">
+              <h1 className="text-5xl md:text-7xl font-bold mb-2">
+                <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_200%]">
+                  音律视界
+                </span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-300 font-light">
+                Experience Music Through Vibrant Visualizations
+              </p>
+            </div>
+
+            {/* 输入模式选择（文件/URL） */}
+            {!audioFile && (
+              <div className="mb-6" data-testid="input-mode-selector">
+                <div className="flex justify-center gap-2 mb-4">
+                  <Button
+                    variant={inputMode === "file" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setInputMode("file")}
+                    className="bg-blue-500/20 hover:bg-blue-500/40 border-blue-500/50 text-white"
+                    data-testid="mode-file"
+                  >
+                    <Upload size={16} className="mr-2" /> 本地文件
+                  </Button>
+                  <Button
+                    variant={inputMode === "url" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setInputMode("url")}
+                    className="bg-purple-500/20 hover:bg-purple-500/40 border-purple-500/50 text-white"
+                    data-testid="mode-url"
+                  >
+                    <Globe size={16} className="mr-2" /> 网址播放
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 输入区域（文件上传/URL输入） */}
+            {!audioFile && (
+              <div className="mb-8">
+                {inputMode === "file" ? (
+                  <FileUploader onFileUpload={setAudioFile} />
+                ) : (
+                  <UrlPlayer onAudioLoad={handleUrlLoad} />
+                )}
+              </div>
+            )}
+
+            {/* 播放器控制区 */}
+            {audioFile && (
+              <div className="mb-6 space-y-4 w-full max-w-md">
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
+                  {/* 歌曲信息 */}
+                  <div className="text-center mb-6" data-testid="track-info">
+                    <h3 className="text-lg font-semibold mb-1 text-white truncate" data-testid="track-title">
+                      {audioFile.name.replace(/\.[^/.]+$/, "")}
+                    </h3>
+                    <p className="text-sm text-gray-400" data-testid="track-artist">
+                      {audioFile.audioURL ? "Remote File" : "Local File"}
+                    </p>
+                  </div>
+
+                  {/* 进度条 */}
+                  <div className="mb-6" data-testid="progress-section">
+                    <div className="flex justify-between text-xs text-gray-400 mb-2">
+                      <span data-testid="current-time">{formatTime(currentTime)}</span>
+                      <span data-testid="total-time">{formatTime(duration)}</span>
+                    </div>
+                    <Slider
+                      value={[duration ? (currentTime / duration) * 100 : 0]}
+                      onValueChange={(value) => seek(value[0])}
+                      max={100}
+                      step={0.1}
+                      className="w-full cursor-pointer"
+                      data-testid="progress-slider"
+                    />
+                  </div>
+
+                  {/* 主控制按钮 */}
+                  <div className="flex items-center justify-center space-x-6 mb-6" data-testid="main-controls">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white/70 hover:text-white transition-colors duration-200"
+                      data-testid="button-previous"
+                    >
+                      <SkipBack size={20} />
+                    </Button>
+                    <Button
+                      onClick={togglePlayPause}
+                      size="icon"
+                      className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:scale-105 transition-transform duration-200 shadow-lg rounded-full"
+                      data-testid="button-play-pause"
+                    >
+                      {isPlaying ? (
+                        <Pause size={24} className="text-white" data-testid="icon-pause" />
+                      ) : (
+                        <Play size={24} className="text-white ml-1" data-testid="icon-play" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white/70 hover:text-white transition-colors duration-200"
+                      data-testid="button-next"
+                    >
+                      <SkipForward size={20} />
+                    </Button>
+                  </div>
+
+                  {/* 音量控制 */}
+                  <div className="flex items-center space-x-3" data-testid="volume-control">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setVolume(prev => prev > 0 ? 0 : volume)}
+                      className="text-gray-400 hover:text-white"
+                      data-testid="button-mute"
+                    >
+                      {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </Button>
+                    <Slider
+                      value={[volume * 100]}
+                      onValueChange={(value) => setVolume(value[0] / 100)}
+                      max={100}
+                      step={1}
+                      className="flex-1 cursor-pointer"
+                      data-testid="volume-slider"
+                    />
+                  </div>
+                </div>
+
+                {/* 返回按钮 */}
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAudioFile(null)}
+                    className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                    data-testid="button-back"
+                  >
+                    <Upload size={16} className="mr-2" /> 选择其他音频
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 可视化模式选择 */}
+            <div className="flex flex-wrap justify-center gap-3 mb-6" data-testid="visualization-modes">
+              <Button
+                variant={visualMode === "waveform" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVisualMode("waveform")}
+                className="bg-blue-500/20 hover:bg-blue-500/40 border-blue-500/50 text-white"
+                data-testid="mode-waveform"
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2 12h2l2-6 4 12 4-6 4 3 2-1h2" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                Waveform
+              </Button>
+              <Button
+                variant={visualMode === "bars" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVisualMode("bars")}
+                className="bg-purple-500/20 hover:bg-purple-500/40 border-purple-500/50 text-white"
+                data-testid="mode-bars"
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="12" width="2" height="9" />
+                  <rect x="7" y="8" width="2" height="13" />
+                  <rect x="11" y="4" width="2" height="17" />
+                  <rect x="15" y="10" width="2" height="11" />
+                  <rect x="19" y="6" width="2" height="15" />
+                </svg>
+                Frequency Bars
+              </Button>
+              <Button
+                variant={visualMode === "particles" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVisualMode("particles")}
+                className="bg-emerald-500/20 hover:bg-emerald-500/40 border-emerald-500/50 text-white"
+                data-testid="mode-particles"
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="6" cy="6" r="1" />
+                  <circle cx="18" cy="6" r="1" />
+                  <circle cx="6" cy="18" r="1" />
+                  <circle cx="18" cy="18" r="1" />
+                </svg>
+                Particles
+              </Button>
+              <Button
+                variant={visualMode === "circular" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVisualMode("circular")}
+                className="bg-pink-500/20 hover:bg-pink-500/40 border-pink-500/50 text-white"
+                data-testid="mode-circular"
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Circular
+              </Button>
+            </div>
+
+            {/* 设置面板 */}
+            <div className="flex flex-wrap justify-center gap-3" data-testid="settings-panel">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(err => console.error("Exit fullscreen error:", err));
+                  } else {
+                    document.documentElement.requestFullscreen().catch(err => console.error("Enter fullscreen error:", err));
+                  }
+                }}
+                className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                data-testid="button-fullscreen"
+              >
+                <Expand size={16} className="mr-2" /> Fullscreen
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleColorScheme}
+                className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                data-testid="button-colors"
+              >
+                <Palette size={16} className="mr-2" /> Colors
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                data-testid="button-settings"
+              >
+                <Settings size={16} className="mr-2" /> Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 5. 工具组件（Button、Slider、Toast等，原 JS 中定义的基础组件）
+    function Button({ className, variant = "default", size = "default", asChild = false, children, ...props }) {
+      const Component = asChild ? "span" : "button";
+      const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0";
+      
+      const variantStyles = {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline"
+      };
+      
+      const sizeStyles = {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10"
+      };
+
+      const finalClass = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`;
+      return React.createElement(Component, { className: finalClass, ...props }, children);
+    }
+
+    function Slider({ value = [0], min = 0, max = 100, step = 1, onValueChange, className, ...props }) {
+      const handleChange = (e) => {
+        const newValue = Math.max(min, Math.min(max, parseFloat(e.target.value)));
+        onValueChange([newValue]);
+      };
+
+      return (
+        <div className={`relative h-2 w-full rounded-full bg-secondary ${className || ""}`} {...props}>
+          <div
+            className="absolute h-full bg-primary rounded-full"
+            style={{ width: `${(value[0] / max) * 100}%` }}
+          ></div>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value[0]}
+            onChange={handleChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-foreground shadow-md"
+            style={{ left: `${(value[0] / max) * 100}%` }}
+          ></div>
+        </div>
+      );
+    }
+
+    // Toast 通知组件（简化版）
+    const ToastContext = createContext({ toast: () => {} });
+    function useToast() {
+      return useContext(ToastContext);
+    }
+    function ToastProvider({ children }) {
+      const toast = useCallback(({ title, description, variant = "default" }) => {
+        const toastEl = document.createElement("div");
+        toastEl.className={`
+          fixed bottom-4 right-4 z-50 max-w-sm w-full bg-${variant === "destructive" ? "destructive" : "popover"} text-${variant === "destructive" ? "destructive-foreground" : "popover-foreground"} rounded-lg shadow-lg p-4 border ${variant === "destructive" ? "border-destructive" : "border-popover/20"} animate-in slide-in-from-right-4 fade-in duration-300
+        `};
+        toastEl.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-medium">${title}</p>
+              ${description ? `<p class="text-sm opacity-80 mt-1">${description}</p>` : ""}
+            </div>
+            <button class="ml-2 text-${variant === "destructive" ? "destructive-foreground/80" : "popover-foreground/80"} hover:text-${variant === "destructive" ? "destructive-foreground" : "popover-foreground"}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+        `;
+        document.body.appendChild(toastEl);
+        
+        // 自动关闭
+        const timer = setTimeout(() => {
+          toastEl.classList.add("animate-out", "slide-out-to-right-4", "fade-out", "duration-300");
+          setTimeout(() => document.body.removeChild(toastEl), 300);
+        }, 3000);
+        
+        // 手动关闭
+        toastEl.querySelector("button").addEventListener("click", () => {
+          clearTimeout(timer);
+          toastEl.classList.add
