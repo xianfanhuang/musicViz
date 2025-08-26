@@ -1087,3 +1087,145 @@
         toastEl.querySelector("button").addEventListener("click", () => {
           clearTimeout(timer);
           toastEl.classList.add
+          `animate-out", "slide-out-to-right-4", "fade-out", "duration-300");
+setTimeout(() => document.body.removeChild(toastEl), 300);
+});
+}, []);
+
+return (
+<ToastContext.Provider value={{ toast }}>
+{children}
+</ToastContext.Provider>
+);
+}
+
+// URL 播放组件
+function UrlPlayer ({onAudioLoad}) {
+const [url, setUrl] = useState ("");
+const [isLoading, setIsLoading] = useState (false);
+const { toast } = useToast ();
+
+// 验证 URL 有效性
+const isValidUrl = (url) => {
+try {
+const parsedUrl = new URL (url);
+const pathname = parsedUrl.pathname.toLowerCase ();
+// 支持直接音频文件后缀或流媒体平台域名
+const validExts = [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".webm"];
+const validDomains = ["soundcloud.com", "youtube.com", "spotify.com", "bandcamp.com"];
+return validExts.some(ext => pathname.endsWith(ext)) || validDomains.some(domain => parsedUrl.hostname.includes(domain));
+} catch (err) {
+return false;
+}
+};
+
+// 加载 URL 音频
+const handleLoadUrl = async () => {
+if (!url.trim ()) {
+toast ({
+title: "请输入 URL",
+description: "请输入音频文件或流媒体平台的网址",
+variant: "destructive"
+});
+return;
+}
+if (!isValidUrl (url)) {
+toast ({
+title: "URL 格式无效",
+description: "请输入有效的音频文件链接（如 .mp3/.wav）或支持的流媒体链接",
+variant: "destructive"
+});
+return;
+}
+
+setIsLoading (true);
+try {
+// 尝试发送 HEAD 请求验证链接（可能因 CORS 失败，失败后仍尝试加载）
+const response = await fetch (url, { method: "HEAD", mode: "no-cors" }).catch (() => null);
+const fileName = new URL (url).pathname.split ("/").pop () || "Remote Audio";
+onAudioLoad (url, fileName);
+toast ({
+title: "加载成功",
+description: ${fileName} 已准备播放
+});
+setUrl ("");
+} catch (err) {
+// CORS 跨域时直接尝试加载（部分平台支持跨域播放）
+const fileName = new URL (url).pathname.split ("/").pop () || "Remote Audio";
+onAudioLoad (url, fileName);
+toast ({
+title: "尝试加载",
+description: 已忽略跨域限制，正在尝试播放 ${fileName},
+variant: "secondary"
+});
+setUrl("");
+} finally {
+setIsLoading(false);
+}
+};
+
+// 回车触发加载
+const handleKeyPress = (e) => {
+if (e.key === "Enter") handleLoadUrl ();
+};
+
+return (
+        &#x3C;div className=&#x22;w-full max-w-md mx-auto&#x22; data-testid=&#x22;url-player&#x22;&#x3E;
+        &#x3C;div className=&#x22;bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20&#x22;&#x3E;
+        &#x3C;div className=&#x22;flex items-center gap-2 mb-4&#x22;&#x3E;
+        &#x3C;Globe className=&#x22;w-5 h-5 text-blue-400&#x22; /&#x3E;
+        &#x3C;h3 className=&#x22;text-lg font-semibold text-white&#x22;&#x3E;&#x4ECE;&#x7F51;&#x5740;&#x64AD;&#x653E;&#x3C;/h3&#x3E;
+        &#x3C;/div&#x3E;
+        &#x3C;div className=&#x22;space-y-4&#x22;&#x3E;
+          &#x3C;div className=&#x22;flex gap-2&#x22;&#x3E;
+            &#x3C;input
+              type=&#x22;url&#x22;
+              placeholder=&#x22;&#x8F93;&#x5165;&#x97F3;&#x9891;&#x6587;&#x4EF6;&#x7F51;&#x5740;&#xFF08;&#x5982; .mp3/.wav&#xFF09;...&#x22;
+              value={url}
+              onChange={(e) =&#x3E; setUrl(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className=&#x22;flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-blue-400 rounded-md px-3 py-2 text-sm&#x22;
+              disabled={isLoading}
+              data-testid=&#x22;url-input&#x22;
+            /&#x3E;
+            &#x3C;Button
+              onClick={handleLoadUrl}
+              disabled={isLoading || !url.trim()}
+              className=&#x22;bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700&#x22;
+              data-testid=&#x22;load-url-button&#x22;
+            &#x3E;
+              {isLoading ? (
+                &#x3C;div className=&#x22;animate-spin rounded-full h-4 w-4 border-b-2 border-white&#x22; /&#x3E;
+              ) : (
+                &#x3C;Link size={16} /&#x3E;
+              )}
+            &#x3C;/Button&#x3E;
+          &#x3C;/div&#x3E;
+          &#x3C;div className=&#x22;text-xs text-gray-400 space-y-1&#x22;&#x3E;
+            &#x3C;p&#x3E;&#x2022; &#x652F;&#x6301;&#x76F4;&#x63A5;&#x97F3;&#x9891;&#x6587;&#x4EF6;&#x94FE;&#x63A5;&#xFF08;.mp3, .wav, .flac &#x7B49;&#xFF09;&#x3C;/p&#x3E;
+            &#x3C;p&#x3E;&#x2022; &#x652F;&#x6301;&#x90E8;&#x5206;&#x6D41;&#x5A92;&#x4F53;&#x5E73;&#x53F0;&#x94FE;&#x63A5;&#xFF08;YouTube&#x3001;SoundCloud &#x7B49;&#xFF09;&#x3C;/p&#x3E;
+            &#x3C;p&#x3E;&#x2022; &#x6CE8;&#x610F;&#xFF1A;&#x90E8;&#x5206;&#x94FE;&#x63A5;&#x53EF;&#x80FD;&#x56E0;&#x8DE8;&#x57DF;&#x9650;&#x5236;&#x65E0;&#x6CD5;&#x64AD;&#x653E;&#x3C;/p&#x3E;
+          &#x3C;/div&#x3E;
+        &#x3C;/div&#x3E;
+      &#x3C;/div&#x3E;
+    &#x3C;/div&#x3E;
+  );
+}
+// ======================== 应用入口 ========================
+function App () {
+return (
+<ToastProvider>
+<MusicVisualizerApp />
+</ToastProvider>
+);
+}
+
+
+
+// 渲染应用
+const root = createRoot (document.getElementById ("root"));
+root.render (<App />);
+</script>
+
+</body>
+</html>
