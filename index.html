@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音律视界 - 音乐可视化播放器</title>
-  <!-- 引入外部资源 -->
+  <title>音景 - 艺术级音乐可视化播放器</title>
+  <!-- 外部资源 -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/youtube-dl-js@1.0.1/dist/youtube-dl.min.js"></script>
   
   <!-- Tailwind 配置 -->
   <script>
@@ -16,15 +17,15 @@
           colors: {
             primary: '#6366f1',    // 靛蓝色
             secondary: '#ec4899',  // 粉红色
-            dark: '#1e1b4b',       // 深色
-            light: '#f5f3ff',      // 浅色
+            dark: '#0f172a',       // 深色背景
+            light: '#f8fafc',      // 浅色文本
             theme1: '#6366f1',     // 主题1主色
             theme2: '#10b981',     // 主题2主色(翡翠绿)
             theme3: '#f59e0b',     // 主题3主色(琥珀色)
             theme4: '#ec4899',     // 主题4主色(粉红色)
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
+            inter: ['Inter', 'system-ui', 'sans-serif'],
           },
         },
       }
@@ -38,6 +39,11 @@
       }
       .backdrop-blur-xl {
         backdrop-filter: blur(24px);
+      }
+      .text-gradient {
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
       .visualizer-container {
         position: relative;
@@ -60,52 +66,87 @@
       }
       .theme-btn {
         transition: all 0.3s ease;
+        position: relative;
       }
-      .theme-btn:hover, .theme-btn:active {
-        transform: scale(1.15);
+      .theme-btn::after {
+        content: "";
+        position: absolute;
+        bottom: -6px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: inherit;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .theme-btn:hover {
+        transform: scale(1.2);
+      }
+      .theme-btn:hover::after {
+        opacity: 1;
       }
       .upload-area {
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .upload-area::before {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border: 2px dashed transparent;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #6366f1, #ec4899, #6366f1);
+        background-size: 200% 200%;
+        animation: borderAnimate 3s linear infinite;
+        pointer-events: none;
+        opacity: 0;
       }
       .upload-area.drag-over {
-        background-color: rgba(99, 102, 241, 0.2);
+        background-color: rgba(99, 102, 241, 0.15);
         border-color: rgba(99, 102, 241, 0.8);
       }
-      /* 移动端优化样式 */
-      @media (max-width: 640px) {
-        .mobile-control-btn {
-          width: 12vw;
-          height: 12vw;
-          min-width: 40px;
-          min-height: 40px;
-        }
-        .mobile-large-btn {
-          width: 16vw;
-          height: 16vw;
-          min-width: 50px;
-          min-height: 50px;
-        }
+      .upload-area.drag-over::before {
+        opacity: 1;
+      }
+      @keyframes borderAnimate {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+      }
+      /* 音频波形加载动画 */
+      @keyframes waveAnimate {
+        0%, 100% { transform: scaleY(0.3); }
+        50% { transform: scaleY(1); }
+      }
+      .wave-bar {
+        animation: waveAnimate 1.5s ease-in-out infinite;
+        transform-origin: bottom;
       }
     }
   </style>
 </head>
 
-<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col">
+<body class="bg-dark text-light font-inter min-h-screen flex flex-col">
+  <!-- 粒子背景装饰 -->
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div id="particleBackground" class="absolute inset-0"></div>
+  </div>
+
   <!-- 顶部导航 -->
-  <header class="bg-dark/80 backdrop-blur-xl border-b border-slate-800 py-4 px-6">
+  <header class="bg-dark/70 backdrop-blur-xl border-b border-slate-800/50 py-4 px-6 relative z-10">
     <div class="container mx-auto flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
           <i class="fa fa-music text-white text-xl"></i>
         </div>
-        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">音律视界</h1>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary text-gradient">音景</h1>
       </div>
       
       <div class="flex items-center gap-4">
-        <button id="fullscreenBtn" class="p-2 rounded-full hover:bg-slate-800 transition-colors">
+        <button id="fullscreenBtn" class="p-2 rounded-full hover:bg-slate-800/50 transition-colors control-btn">
           <i class="fa fa-expand"></i>
         </button>
-        <a href="https://github.com" target="_blank" class="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-full transition-colors">
+        <a href="https://github.com" target="_blank" class="hidden md:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 px-4 py-2 rounded-full transition-colors">
           <i class="fa fa-github"></i>
           <span>GitHub</span>
         </a>
@@ -114,36 +155,45 @@
   </header>
 
   <!-- 主内容区 -->
-  <main class="flex-1 container mx-auto px-4 py-6">
+  <main class="flex-1 container mx-auto px-4 py-6 relative z-10">
     <div class="max-w-6xl mx-auto">
       <!-- 可视化区域 -->
-      <div class="visualizer-container bg-slate-800/50 rounded-2xl mb-6 overflow-hidden border border-slate-700/50">
+      <div class="visualizer-container bg-gradient-to-br from-dark to-slate-900 rounded-2xl mb-6 overflow-hidden border border-slate-800/50 shadow-xl">
         <canvas id="visualizer" class="w-full aspect-video"></canvas>
         
         <!-- 加载状态 -->
-        <div id="loadingIndicator" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center hidden">
+        <div id="loadingIndicator" class="absolute inset-0 bg-dark/80 flex items-center justify-center hidden">
           <div class="text-center">
-            <div class="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p>处理音频中...</p>
+            <div class="w-24 h-12 flex items-end justify-center gap-1 mb-4">
+              <!-- 动态波形加载 -->
+              <div class="wave-bar w-3 h-6 bg-theme1 rounded-t" style="animation-delay: 0.1s"></div>
+              <div class="wave-bar w-3 h-10 bg-theme1/80 rounded-t" style="animation-delay: 0.2s"></div>
+              <div class="wave-bar w-3 h-4 bg-theme1/60 rounded-t" style="animation-delay: 0.3s"></div>
+              <div class="wave-bar w-3 h-8 bg-theme1/70 rounded-t" style="animation-delay: 0.4s"></div>
+              <div class="wave-bar w-3 h-5 bg-theme1/50 rounded-t" style="animation-delay: 0.5s"></div>
+              <div class="wave-bar w-3 h-9 bg-theme1/90 rounded-t" style="animation-delay: 0.6s"></div>
+              <div class="wave-bar w-3 h-3 bg-theme1/40 rounded-t" style="animation-delay: 0.7s"></div>
+            </div>
+            <p id="loadingText" class="text-lg">处理音频中...</p>
           </div>
         </div>
         
         <!-- 初始提示 -->
-        <div id="initialMessage" class="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-center p-6">
-          <i class="fa fa-music text-6xl text-primary/70 mb-6"></i>
-          <h2 class="text-2xl font-bold mb-2">音乐可视化播放器</h2>
-          <p class="text-slate-300 mb-6 max-w-md">上传音乐文件或输入音频URL，体验绚丽的音乐可视化效果</p>
+        <div id="initialMessage" class="absolute inset-0 bg-gradient-to-br from-dark/80 to-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
+          <i class="fa fa-music text-6xl bg-gradient-to-r from-primary to-secondary text-gradient mb-6 animate-pulse"></i>
+          <h2 class="text-2xl font-bold mb-2">音乐可视化体验</h2>
+          <p class="text-slate-300 mb-6 max-w-md">上传音乐文件、输入音频URL或视频网站链接，沉浸在音乐与视觉的融合艺术中</p>
           
-          <!-- 移动端优化的上传区域 -->
+          <!-- 上传区域 -->
           <div id="uploadArea" class="upload-area border-2 border-dashed border-slate-600 rounded-xl p-8 w-full max-w-md cursor-pointer">
             <div class="text-center">
-              <i class="fa fa-upload text-3xl text-primary/70 mb-4"></i>
+              <i class="fa fa-upload text-3xl bg-gradient-to-r from-primary to-secondary text-gradient mb-4"></i>
               <p class="mb-2">点击或拖拽音频文件到此处</p>
               <p class="text-sm text-slate-400">支持 MP3, WAV, FLAC 等格式</p>
               <input type="file" id="fileInput" accept="audio/*" class="hidden">
               
-              <!-- 移动端专用上传按钮 -->
-              <button id="mobileUploadBtn" class="mt-6 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full text-sm transition-colors">
+              <!-- 上传按钮 -->
+              <button id="mobileUploadBtn" class="mt-6 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-6 py-3 rounded-full text-sm transition-all shadow-lg shadow-primary/20">
                 <i class="fa fa-file-audio-o mr-2"></i>选择音频文件
               </button>
             </div>
@@ -151,21 +201,26 @@
         </div>
         
         <!-- 错误提示 -->
-        <div id="errorMessage" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center text-center p-6 hidden">
+        <div id="errorMessage" class="absolute inset-0 bg-dark/90 flex flex-col items-center justify-center text-center p-6 hidden">
           <i class="fa fa-exclamation-triangle text-5xl text-amber-500 mb-4"></i>
           <h3 class="text-xl font-bold mb-2">无法加载音频</h3>
           <p id="errorDetails" class="text-slate-300 mb-6 max-w-md">请尝试其他音频文件或检查网络连接</p>
-          <button id="retryBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full transition-colors">
+          <button id="retryBtn" class="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-6 py-3 rounded-full transition-all shadow-lg shadow-primary/20">
             重试
           </button>
         </div>
       </div>
       
       <!-- 音频信息和控制 -->
-      <div class="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50 mb-6">
+      <div class="bg-slate-800/30 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/30 mb-6 shadow-lg">
         <!-- 音频信息 -->
         <div class="mb-5">
           <h2 id="trackTitle" class="text-xl font-bold mb-1 truncate">未选择音频</h2>
+          <!-- 音频属性标签 -->
+          <div class="flex flex-wrap gap-2 mb-1">
+            <span id="trackBitrate" class="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full hidden"></span>
+            <span id="trackSampleRate" class="text-xs bg-secondary/20 text-secondary px-2 py-0.5 rounded-full hidden"></span>
+          </div>
           <p id="trackInfo" class="text-slate-400 text-sm">请上传音频文件或输入URL</p>
         </div>
         
@@ -175,12 +230,12 @@
             <span id="currentTime">00:00</span>
             <span id="totalTime">00:00</span>
           </div>
-          <div class="bg-slate-700 rounded-full overflow-hidden progress-bar">
+          <div class="bg-slate-700/50 rounded-full overflow-hidden progress-bar">
             <div id="progressBar" class="h-full w-0 bg-gradient-to-r from-primary to-secondary"></div>
           </div>
         </div>
         
-        <!-- 控制按钮 - 优化移动端触摸区域 -->
+        <!-- 控制按钮 -->
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-4 sm:gap-6">
             <button id="shuffleBtn" class="control-btn text-slate-400 hover:text-white p-2">
@@ -189,7 +244,7 @@
             <button id="prevBtn" class="control-btn text-slate-400 hover:text-white p-2">
               <i class="fa fa-step-backward text-lg sm:text-xl"></i>
             </button>
-            <button id="playPauseBtn" class="control-btn mobile-large-btn rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white">
+            <button id="playPauseBtn" class="control-btn w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-lg shadow-primary/30">
               <i class="fa fa-play text-xl sm:text-2xl"></i>
             </button>
             <button id="nextBtn" class="control-btn text-slate-400 hover:text-white p-2">
@@ -209,19 +264,19 @@
         </div>
       </div>
       
-      <!-- 可视化控制 - 优化移动端布局 -->
-      <div class="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
-        <h3 class="text-lg font-semibold mb-5">可视化设置</h3>
+      <!-- 可视化控制 -->
+      <div class="bg-slate-800/30 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/30 shadow-lg">
+        <h3 class="text-lg font-semibold mb-5 bg-gradient-to-r from-primary to-secondary text-gradient">可视化设置</h3>
         
-        <div class="grid grid-cols-1 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <!-- 可视化模式选择 -->
           <div>
             <label class="block text-sm text-slate-300 mb-3">可视化模式</label>
             <div class="flex flex-wrap gap-2">
-              <button data-visualization="waveform" class="visualization-btn bg-primary text-white text-sm px-3 py-1.5 rounded-full">波形图</button>
-              <button data-visualization="bars" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">频谱柱</button>
-              <button data-visualization="particles" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">粒子</button>
-              <button data-visualization="circular" class="visualization-btn bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">圆形</button>
+              <button data-visualization="waveform" class="visualization-btn bg-primary text-white text-sm px-3 py-1.5 rounded-full shadow-md shadow-primary/20">波形图</button>
+              <button data-visualization="bars" class="visualization-btn bg-slate-700/50 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">频谱柱</button>
+              <button data-visualization="particles" class="visualization-btn bg-slate-700/50 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">粒子</button>
+              <button data-visualization="circular" class="visualization-btn bg-slate-700/50 hover:bg-slate-600 text-white text-sm px-3 py-1.5 rounded-full transition-colors">圆形</button>
             </div>
           </div>
           
@@ -237,18 +292,21 @@
           </div>
           
           <!-- 音频URL输入 -->
-          <div>
-            <label class="block text-sm text-slate-300 mb-3">音频URL</label>
+          <div class="md:col-span-2">
+            <label class="block text-sm text-slate-300 mb-3">
+              音频/视频URL 
+              <span class="text-xs text-primary ml-2">(支持YouTube、B站等1000+站点)</span>
+            </label>
             <div class="flex gap-2">
-              <input type="text" id="audioUrl" placeholder="输入音频URL..." class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
-              <button id="loadUrlBtn" class="bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded-lg text-sm transition-colors">
+              <input type="text" id="audioUrl" placeholder="输入音频/视频URL..." class="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors">
+              <button id="loadUrlBtn" class="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-3 py-2 rounded-lg text-sm transition-all shadow-md shadow-primary/20">
                 加载
               </button>
             </div>
           </div>
           
           <!-- 动画速度 -->
-          <div>
+          <div class="md:col-span-2">
             <label class="block text-sm text-slate-300 mb-3">动画速度</label>
             <input type="range" id="animationSpeed" min="0.5" max="3" step="0.1" value="1" class="w-full accent-primary">
           </div>
@@ -258,10 +316,10 @@
   </main>
 
   <!-- 页脚 -->
-  <footer class="bg-dark/80 backdrop-blur-xl border-t border-slate-800 py-5 px-6 mt-6">
+  <footer class="bg-dark/70 backdrop-blur-xl border-t border-slate-800/50 py-5 px-6 mt-6 relative z-10">
     <div class="container mx-auto text-center text-slate-400 text-sm">
-      <p>音律视界 - 音乐可视化播放器 &copy; 2023</p>
-      <p class="mt-1">使用 Web Audio API 和 Canvas 构建</p>
+      <p>音景 - 艺术级音乐可视化播放器 &copy; 2023</p>
+      <p class="mt-1">融合Web Audio API与视觉艺术的沉浸式体验</p>
     </div>
   </footer>
 
@@ -277,6 +335,7 @@
     const mobileUploadBtn = document.getElementById('mobileUploadBtn');
     const initialMessage = document.getElementById('initialMessage');
     const loadingIndicator = document.getElementById('loadingIndicator');
+    const loadingText = document.getElementById('loadingText');
     const errorMessage = document.getElementById('errorMessage');
     const errorDetails = document.getElementById('errorDetails');
     const retryBtn = document.getElementById('retryBtn');
@@ -289,12 +348,15 @@
     const volumeSlider = document.getElementById('volumeSlider');
     const trackTitle = document.getElementById('trackTitle');
     const trackInfo = document.getElementById('trackInfo');
+    const trackBitrate = document.getElementById('trackBitrate');
+    const trackSampleRate = document.getElementById('trackSampleRate');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const audioUrlInput = document.getElementById('audioUrl');
     const loadUrlBtn = document.getElementById('loadUrlBtn');
     const animationSpeedSlider = document.getElementById('animationSpeed');
     const shuffleBtn = document.getElementById('shuffleBtn');
     const loopBtn = document.getElementById('loopBtn');
+    const particleBackground = document.getElementById('particleBackground');
     
     // 可视化相关变量
     let audioContext;
@@ -310,6 +372,8 @@
       theme3: ['#f59e0b', '#fbbf24'],
       theme4: ['#ec4899', '#f472b6']
     };
+    let backgroundParticles = [];
+    let currentFile = null;
     
     // 支持的音频格式
     const supportedFormats = [
@@ -322,13 +386,67 @@
       'audio/x-m4a'    // M4A 替代类型
     ];
     
+    // 创建背景粒子
+    function createBackgroundParticles() {
+      const particleCount = 30;
+      backgroundParticles = [];
+      
+      for (let i = 0; i < particleCount; i++) {
+        const size = Math.random() * 3 + 1;
+        backgroundParticles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          size: size,
+          speedX: (Math.random() - 0.5) * 0.3,
+          speedY: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.2 + 0.1,
+          color: themeColors[currentTheme][Math.floor(Math.random() * 2)]
+        });
+      }
+      
+      drawParticles();
+    }
+    
+    // 绘制背景粒子
+    function drawParticles() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 更新粒子位置
+      backgroundParticles.forEach(particle => {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        
+        // 边界检查
+        if (particle.x < 0 || particle.x > canvas.width) particle.speedX *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.speedY *= -1;
+        
+        // 绘制粒子
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fillStyle = `${particle.color}${Math.floor(particle.opacity * 255).toString(16).padStart(2, '0')}`;
+        ctx.fill();
+      });
+      
+      particleBackground.style.backgroundImage = `url(${canvas.toDataURL()})`;
+      requestAnimationFrame(drawParticles);
+    }
+    
     // 初始化画布尺寸
     function resizeCanvas() {
       const container = visualizerCanvas.parentElement;
-      // 确保在移动设备上正确获取尺寸
       const rect = container.getBoundingClientRect();
       visualizerCanvas.width = rect.width;
       visualizerCanvas.height = rect.height;
+      
+      // 调整粒子背景尺寸
+      if (particleBackground) {
+        createBackgroundParticles();
+      }
       
       // 如果分析器已初始化，重新设置缓冲区大小
       if (analyser) {
@@ -340,8 +458,6 @@
     
     // 监听窗口大小变化，调整画布尺寸
     window.addEventListener('resize', resizeCanvas);
-    // 初始调整画布尺寸
-    resizeCanvas();
     
     // 初始化音频上下文和分析器
     function initAudioContext() {
@@ -415,7 +531,7 @@
       
       const progressBar = document.querySelector('.progress-bar');
       const rect = progressBar.getBoundingClientRect();
-      const pos = (e.clientX || e.touches[0].clientX - rect.left) / rect.width;
+      const pos = (e.clientX || (e.touches && e.touches[0].clientX) - rect.left) / rect.width;
       audioElement.currentTime = pos * audioElement.duration;
     }
     
@@ -454,6 +570,8 @@
     function loadAudioFile(file) {
       if (!file) return;
       
+      currentFile = file;
+      
       // 验证文件类型
       if (!isValidAudioFile(file)) {
         showError('不支持的文件格式。请上传MP3、WAV、FLAC、AAC、OGG或M4A格式的音频文件。');
@@ -463,6 +581,7 @@
       // 显示加载指示器
       hideError();
       loadingIndicator.classList.remove('hidden');
+      loadingText.textContent = '处理音频文件中...';
       initialMessage.classList.add('hidden');
       
       try {
@@ -474,6 +593,10 @@
         trackTitle.textContent = file.name;
         trackInfo.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · ${file.type || '音频文件'}`;
         
+        // 隐藏属性标签，等待加载完成后显示
+        trackBitrate.classList.add('hidden');
+        trackSampleRate.classList.add('hidden');
+        
         // 准备播放
         audioElement.onloadedmetadata = () => {
           loadingIndicator.classList.add('hidden');
@@ -481,6 +604,19 @@
           
           // 初始化音频上下文
           initAudioContext();
+          
+          // 计算并显示音频属性
+          if (file.size && audioElement.duration) {
+            const bitrate = Math.round((file.size * 8) / (audioElement.duration * 1024));
+            trackBitrate.textContent = `${bitrate} kbps`;
+            trackBitrate.classList.remove('hidden');
+          }
+          
+          if (audioContext) {
+            const sampleRate = (audioContext.sampleRate / 1000).toFixed(1);
+            trackSampleRate.textContent = `${sampleRate} kHz`;
+            trackSampleRate.classList.remove('hidden');
+          }
           
           // 自动播放
           if (!isPlaying) {
@@ -499,25 +635,105 @@
       }
     }
     
-    // 从URL加载音频
-    function loadAudioFromURL(url) {
+    // 使用youtube-dl-js解析URL并提取音频
+    async function extractAudioFromUrl(url) {
+      try {
+        // 显示解析中状态
+        loadingText.textContent = '解析URL中...';
+        
+        // 调用youtube-dl-js获取视频信息
+        const info = await youtubeDl.getInfo(url);
+        
+        // 寻找最佳音频流
+        loadingText.textContent = '寻找最佳音频流...';
+        let bestAudio = null;
+        let highestBitrate = 0;
+        
+        // 遍历所有格式，找到最佳音频流
+        for (const format of info.formats) {
+          if (format.acodec !== 'none' && format.vcodec === 'none') { // 纯音频流
+            const bitrate = parseInt(format.abr) || 0;
+            if (bitrate > highestBitrate) {
+              highestBitrate = bitrate;
+              bestAudio = format;
+            }
+          }
+        }
+        
+        // 如果没有找到纯音频流，尝试找包含音频的视频流
+        if (!bestAudio) {
+          for (const format of info.formats) {
+            if (format.acodec !== 'none') {
+              const bitrate = parseInt(format.abr) || 0;
+              if (bitrate > highestBitrate) {
+                highestBitrate = bitrate;
+                bestAudio = format;
+              }
+            }
+          }
+        }
+        
+        if (bestAudio) {
+          return {
+            url: bestAudio.url,
+            title: info.title || '来自URL的音频',
+            source: new URL(url).hostname,
+            bitrate: highestBitrate
+          };
+        } else {
+          throw new Error('未找到可用的音频流');
+        }
+      } catch (error) {
+        console.error('URL解析失败:', error);
+        throw error;
+      }
+    }
+    
+    // 从URL加载音频（支持直接音频URL和视频网站URL）
+    async function loadAudioFromURL(url) {
       if (!url) return;
+      
+      currentFile = null;
       
       // 显示加载指示器
       hideError();
       loadingIndicator.classList.remove('hidden');
+      loadingText.textContent = '准备加载...';
       initialMessage.classList.add('hidden');
       
       try {
-        audioElement.src = url;
+        let audioUrl, title, source, bitrate;
+        
+        // 检查是否是直接的音频URL
+        const audioExtensions = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'];
+        const urlExt = url.split('.').pop().split('?')[0].toLowerCase();
+        
+        if (audioExtensions.includes(urlExt)) {
+          // 直接音频URL
+          audioUrl = url;
+          title = '来自URL的音频';
+          source = new URL(url).hostname;
+          bitrate = 0;
+        } else {
+          // 使用youtube-dl-js解析视频URL
+          const result = await extractAudioFromUrl(url);
+          audioUrl = result.url;
+          title = result.title;
+          source = result.source;
+          bitrate = result.bitrate;
+        }
+        
+        // 加载提取到的音频URL
+        loadingText.textContent = '加载音频中...';
+        audioElement.src = audioUrl;
         
         // 更新轨道信息
-        trackTitle.textContent = '来自URL的音频';
-        try {
-          trackInfo.textContent = new URL(url).hostname;
-        } catch {
-          trackInfo.textContent = '网络音频';
-        }
+        trackTitle.textContent = title;
+        trackInfo.textContent = source;
+        
+        // 隐藏属性标签，等待加载完成后显示
+        trackBitrate.classList.add('hidden');
+        trackSampleRate.classList.add('hidden');
         
         // 准备播放
         audioElement.onloadedmetadata = () => {
@@ -527,6 +743,18 @@
           // 初始化音频上下文
           initAudioContext();
           
+          // 显示音频属性
+          if (bitrate) {
+            trackBitrate.textContent = `${bitrate} kbps`;
+            trackBitrate.classList.remove('hidden');
+          }
+          
+          if (audioContext) {
+            const sampleRate = (audioContext.sampleRate / 1000).toFixed(1);
+            trackSampleRate.textContent = `${sampleRate} kHz`;
+            trackSampleRate.classList.remove('hidden');
+          }
+          
           // 自动播放
           if (!isPlaying) {
             togglePlayPause();
@@ -535,12 +763,12 @@
         
         audioElement.onerror = () => {
           loadingIndicator.classList.add('hidden');
-          showError('无法从该URL加载音频，请检查URL是否正确或尝试其他链接。');
+          showError('无法加载音频，请检查URL是否正确或尝试其他链接。');
         };
       } catch (error) {
         console.error('从URL加载音频时出错:', error);
         loadingIndicator.classList.add('hidden');
-        showError('加载URL时出错，请检查链接格式是否正确。');
+        showError(`解析失败: ${error.message || '无法处理该URL'}`);
       }
     }
     
@@ -550,13 +778,13 @@
       
       // 更新按钮样式
       document.querySelectorAll('.visualization-btn').forEach(btn => {
-        btn.classList.remove('bg-primary');
-        btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+        btn.classList.remove('bg-primary', 'shadow-md', 'shadow-primary/20');
+        btn.classList.add('bg-slate-700/50', 'hover:bg-slate-600');
       });
       
       const activeBtn = document.querySelector(`[data-visualization="${mode}"]`);
-      activeBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
-      activeBtn.classList.add('bg-primary');
+      activeBtn.classList.remove('bg-slate-700/50', 'hover:bg-slate-600');
+      activeBtn.classList.add('bg-primary', 'shadow-md', 'shadow-primary/20');
       
       // 如果正在播放，重新启动可视化
       if (isPlaying) {
@@ -578,6 +806,11 @@
       const activeBtn = document.querySelector(`[data-theme="${theme}"]`);
       activeBtn.classList.remove('border-transparent', 'hover:border-white/50');
       activeBtn.classList.add('border-white');
+      
+      // 更新背景粒子颜色
+      backgroundParticles.forEach(particle => {
+        particle.color = themeColors[currentTheme][Math.floor(Math.random() * 2)];
+      });
     }
     
     // 切换全屏模式
@@ -625,13 +858,21 @@
       
       analyser.getByteTimeDomainData(dataArray);
       
-      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      // 半透明背景，创建轨迹效果
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.3)';
       visualizerCtx.fillRect(0, 0, width, height);
       
-      visualizerCtx.lineWidth = 2;
-      visualizerCtx.strokeStyle = themeColors[currentTheme][0];
-      visualizerCtx.beginPath();
+      // 第一条波形：渐变线条+发光
+      visualizerCtx.lineWidth = 3;
+      const gradient1 = visualizerCtx.createLinearGradient(0, 0, width, 0);
+      gradient1.addColorStop(0, themeColors[currentTheme][0]);
+      gradient1.addColorStop(1, themeColors[currentTheme][1]);
+      visualizerCtx.strokeStyle = gradient1;
+      visualizerCtx.shadowColor = themeColors[currentTheme][0];
+      visualizerCtx.shadowBlur = 8;
       
+      // 绘制波形路径
+      visualizerCtx.beginPath();
       const sliceWidth = width / dataArray.length;
       let x = 0;
       
@@ -651,9 +892,27 @@
       visualizerCtx.lineTo(width, height / 2);
       visualizerCtx.stroke();
       
-      // 绘制第二条波形线，增加视觉效果
+      // 波形顶点粒子
+      visualizerCtx.shadowBlur = 0;
+      visualizerCtx.fillStyle = themeColors[currentTheme][0];
+      x = 0;
+      
+      for (let i = 0; i < dataArray.length; i += 10) {
+        const v = dataArray[i] / 128.0;
+        const y = v * height / 2;
+        const particleSize = 2 + Math.sin(v * Math.PI) * 2;
+        
+        visualizerCtx.beginPath();
+        visualizerCtx.arc(x, y, particleSize, 0, Math.PI * 2);
+        visualizerCtx.fill();
+        
+        x += sliceWidth * 10;
+      }
+      
+      // 第二条波形线，增加视觉效果
       visualizerCtx.lineWidth = 1;
       visualizerCtx.strokeStyle = themeColors[currentTheme][1];
+      visualizerCtx.shadowBlur = 4;
       visualizerCtx.beginPath();
       
       x = 0;
@@ -682,24 +941,36 @@
       
       analyser.getByteFrequencyData(dataArray);
       
-      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      // 半透明背景，创建平滑动画效果
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.3)';
       visualizerCtx.fillRect(0, 0, width, height);
       
       const barWidth = (width / dataArray.length) * 2.5;
       let x = 0;
       
-      for (let i = 0; i < dataArray.length; i++) {
-        const barHeight = (dataArray[i] / 255) * height;
+      // 减少柱子数量，增强层次感
+      for (let i = 0; i < dataArray.length; i += 2) {
+        const barHeight = (dataArray[i] / 255) * height * animationSpeedSlider.value;
+        const barY = height - barHeight;
         
-        // 创建渐变颜色
-        const gradient = visualizerCtx.createLinearGradient(0, height - barHeight, 0, height);
+        // 3D渐变：顶部亮、底部暗
+        const gradient = visualizerCtx.createLinearGradient(0, barY, 0, height);
         gradient.addColorStop(0, themeColors[currentTheme][0]);
-        gradient.addColorStop(1, themeColors[currentTheme][1]);
+        gradient.addColorStop(0.7, themeColors[currentTheme][1]);
+        gradient.addColorStop(1, `${themeColors[currentTheme][1]}20`);
         
         visualizerCtx.fillStyle = gradient;
-        visualizerCtx.fillRect(x, height - barHeight, barWidth, barHeight);
         
-        x += barWidth + 1;
+        // 顶部圆角
+        visualizerCtx.beginPath();
+        visualizerCtx.roundRect(x, barY, barWidth, barHeight, barWidth / 2);
+        visualizerCtx.fill();
+        
+        // 底部阴影
+        visualizerCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        visualizerCtx.fillRect(x, height - 2, barWidth, 2);
+        
+        x += barWidth + 3;
       }
     }
     
@@ -713,7 +984,7 @@
       analyser.getByteFrequencyData(dataArray);
       
       // 半透明背景，创建轨迹效果
-      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.3)';
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.2)';
       visualizerCtx.fillRect(0, 0, width, height);
       
       const particleCount = 64;
@@ -756,7 +1027,7 @@
       analyser.getByteFrequencyData(dataArray);
       
       // 半透明背景，创建平滑动画效果
-      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      visualizerCtx.fillStyle = 'rgba(15, 23, 42, 0.3)';
       visualizerCtx.fillRect(0, 0, width, height);
       
       // 绘制同心圆
@@ -791,12 +1062,23 @@
         const x2 = centerX + Math.cos(angle) * lineLength;
         const y2 = centerY + Math.sin(angle) * lineLength;
         
+        // 线条渐变
+        const gradient = visualizerCtx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `${themeColors[currentTheme][0]}40`);
+        gradient.addColorStop(1, themeColors[currentTheme][1]);
+        
         visualizerCtx.beginPath();
         visualizerCtx.moveTo(x1, y1);
         visualizerCtx.lineTo(x2, y2);
-        visualizerCtx.strokeStyle = themeColors[currentTheme][1];
+        visualizerCtx.strokeStyle = gradient;
         visualizerCtx.lineWidth = 2;
         visualizerCtx.stroke();
+        
+        // 线条末端粒子
+        visualizerCtx.beginPath();
+        visualizerCtx.arc(x2, y2, 3 + energy * 5, 0, Math.PI * 2);
+        visualizerCtx.fillStyle = themeColors[currentTheme][1];
+        visualizerCtx.fill();
       }
     }
     
@@ -831,7 +1113,7 @@
     const progressBarContainer = document.querySelector('.progress-bar');
     progressBarContainer.addEventListener('click', seekAudio);
     progressBarContainer.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // 防止触摸事件冒泡
+      e.preventDefault();
       seekAudio(e);
     });
     
@@ -869,7 +1151,7 @@
       }
     });
     
-    // 拖放功能 - 优化移动设备体验
+    // 拖放功能
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
       uploadArea.classList.add('drag-over');
@@ -888,10 +1170,9 @@
       }
     });
     
-    // 触摸设备上的拖放模拟（简化版）
+    // 触摸设备上的拖放模拟
     let touchDragging = false;
     uploadArea.addEventListener('touchstart', (e) => {
-      // 只在有文件时处理
       if (e.touches.length === 1) {
         touchDragging = true;
       }
@@ -930,15 +1211,28 @@
       }
     });
     
-    // 初始化音量
-    setVolume();
+    // 初始化
+    function init() {
+      // 设置初始音量
+      setVolume();
+      
+      // 调整画布尺寸
+      resizeCanvas();
+      
+      // 创建背景粒子
+      createBackgroundParticles();
+      
+      // 移动端友好提示：首次点击时激活音频上下文
+      document.body.addEventListener('click', () => {
+        if (audioContext && audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      }, { once: true });
+    }
     
-    // 移动端友好提示：首次点击时激活音频上下文
-    document.body.addEventListener('click', () => {
-      if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-    }, { once: true });
+    // 启动应用
+    init();
   </script>
 </body>
 </html>
+    
