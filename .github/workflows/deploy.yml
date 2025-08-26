@@ -4,8 +4,8 @@ on:
   push:
     branches: [test]
 
-permissions:
-  contents: write
+permissions:                 # 显式声明
+  contents: write            # 必须有写权限
   pages: write
   id-token: write
 
