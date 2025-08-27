@@ -42,7 +42,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: 
+    background:
         radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 40% 80%, rgba(79, 172, 254, 0.1) 0%, transparent 50%);
@@ -51,11 +51,11 @@ body::before {
 }
 
 @keyframes breathe {
-    0%, 100% { 
+    0%, 100% {
         opacity: 0.3;
         transform: scale(1);
     }
-    50% { 
+    50% {
         opacity: 0.6;
         transform: scale(1.1);
     }
@@ -758,4 +758,114 @@ body::before {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Immersive Mode Styles */
+.immersive-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+    line-height: 40px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.immersive-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+body.immersive-mode .header,
+body.immersive-mode .input-section,
+body.immersive-mode .player-section,
+body.immersive-mode .playlist-section,
+body.immersive-mode .visualizer-controls {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+body.immersive-mode .visualizer-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    z-index: 1000;
+    padding: 0;
+    border: none;
+}
+
+body.immersive-mode #visualizerCanvas {
+    height: 100%;
+    border-radius: 0;
+    border: none;
+}
+
+/* Playlist Management Styles */
+.playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.playlist-section h3 {
+    margin-bottom: 0; /* Remove bottom margin as it's now in the header */
+}
+
+.clear-playlist-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.clear-playlist-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.playlist-item {
+    /* ... existing styles ... */
+    padding-right: 50px; /* Make space for the remove button */
+}
+
+.remove-track-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+.remove-track-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff4757; /* Red color for delete action */
+    opacity: 1;
 }

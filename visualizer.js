@@ -13,50 +13,50 @@ class AudioVisualizer {
         this.dataArray = null;
         this.bufferLength = 0;
         this.animationId = null;
-        
+
         this.mode = 'cosmic';
         this.colorTheme = 'aurora';
         this.isPlaying = false;
-        
+
         // 艺术化视觉元素
         this.particles = [];
         this.maxParticles = 200;
         this.waves = [];
         this.orbs = [];
         this.fractals = [];
-        
+
         // 动画参数
         this.time = 0;
         this.breatheIntensity = 0;
         this.energyLevel = 0;
         this.bassEnergy = 0;
         this.trebleEnergy = 0;
-        
+
         // 随机变化参数
         this.randomSeed = Math.random() * 1000;
         this.colorShift = 0;
         this.morphing = 0;
-        
+
         this.setupCanvas();
         this.setupAnalyser();
         this.initializeElements();
     }
 
     setupCanvas() {
-        const resizeCanvas = () => {
-            const rect = this.canvas.getBoundingClientRect();
-            this.canvas.width = rect.width * window.devicePixelRatio;
-            this.canvas.height = rect.height * window.devicePixelRatio;
-            this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-            
-            this.width = rect.width;
-            this.height = rect.height;
-            this.centerX = this.width / 2;
-            this.centerY = this.height / 2;
-        };
-        
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        this.resizeCanvas();
+        window.addEventListener('resize', this.resizeCanvas.bind(this));
+    }
+
+    resizeCanvas() {
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width * window.devicePixelRatio;
+        this.canvas.height = rect.height * window.devicePixelRatio;
+        this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        this.width = rect.width;
+        this.height = rect.height;
+        this.centerX = this.width / 2;
+        this.centerY = this.height / 2;
     }
 
     setupAnalyser() {
@@ -143,15 +143,15 @@ class AudioVisualizer {
 
     animate() {
         if (!this.isPlaying) return;
-        
+
         this.animationId = requestAnimationFrame(() => this.animate());
-        
+
         this.time += 0.016;
         this.updateAudioAnalysis();
         this.updateDynamicElements();
-        
+
         this.clearCanvas();
-        
+
         switch (this.mode) {
             case 'cosmic':
                 this.drawCosmicVisualization();
@@ -171,23 +171,23 @@ class AudioVisualizer {
             default:
                 this.drawCosmicVisualization();
         }
-        
+
         this.drawBreathingAura();
     }
 
     updateAudioAnalysis() {
         if (!this.analyser || !this.dataArray) return;
-        
+
         this.analyser.getByteFrequencyData(this.dataArray);
-        
+
         // 计算不同频段的能量
         const bassRange = Math.floor(this.bufferLength * 0.1);
         const midRange = Math.floor(this.bufferLength * 0.4);
-        
+
         this.bassEnergy = this.getAverageEnergy(0, bassRange);
         const midEnergy = this.getAverageEnergy(bassRange, midRange);
         this.trebleEnergy = this.getAverageEnergy(midRange, this.bufferLength);
-        
+
         this.energyLevel = (this.bassEnergy + midEnergy + this.trebleEnergy) / 3;
         this.breatheIntensity = Math.sin(this.time * 2) * 0.5 + 0.5 + (this.energyLevel / 255) * 2;
     }
@@ -205,10 +205,10 @@ class AudioVisualizer {
         this.orbs.forEach((orb, i) => {
             orb.x += orb.vx * (1 + this.energyLevel / 255);
             orb.y += orb.vy * (1 + this.energyLevel / 255);
-            
+
             if (orb.x < 0 || orb.x > this.width) orb.vx *= -1;
             if (orb.y < 0 || orb.y > this.height) orb.vy *= -1;
-            
+
             orb.energy = this.energyLevel / 255;
             orb.breathe += 0.05;
         });
@@ -226,20 +226,20 @@ class AudioVisualizer {
 
     drawCosmicVisualization() {
         this.ctx.save();
-        
+
         // 绘制星云背景
         this.drawNebula();
-        
+
         // 绘制音频响应的粒子系统
         this.updateParticles();
         this.drawParticles();
-        
+
         // 绘制能量环
         this.drawEnergyRings();
-        
+
         // 绘制光球
         this.drawOrbs();
-        
+
         this.ctx.restore();
     }
 
@@ -248,12 +248,12 @@ class AudioVisualizer {
             this.centerX, this.centerY, 0,
             this.centerX, this.centerY, Math.max(this.width, this.height)
         );
-        
+
         const colors = this.getThemeColors();
         gradient.addColorStop(0, `rgba(${colors.primary}, ${0.1 + this.breatheIntensity * 0.1})`);
         gradient.addColorStop(0.5, `rgba(${colors.secondary}, ${0.05 + this.breatheIntensity * 0.05})`);
         gradient.addColorStop(1, `rgba(${colors.tertiary}, 0.02)`);
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
     }
@@ -290,7 +290,7 @@ class AudioVisualizer {
         for (let i = 0; i < rings; i++) {
             const radius = 50 + i * 40 + this.energyLevel * 2;
             const opacity = (1 - i / rings) * 0.3 * this.breatheIntensity;
-            
+
             this.ctx.strokeStyle = `rgba(102, 126, 234, ${opacity})`;
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
@@ -306,11 +306,11 @@ class AudioVisualizer {
                 orb.x, orb.y, 0,
                 orb.x, orb.y, size
             );
-            
+
             gradient.addColorStop(0, `rgba(${orb.color}, 0.8)`);
             gradient.addColorStop(0.7, `rgba(${orb.color}, 0.3)`);
             gradient.addColorStop(1, `rgba(${orb.color}, 0)`);
-            
+
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.arc(orb.x, orb.y, size, 0, Math.PI * 2);
@@ -320,11 +320,11 @@ class AudioVisualizer {
 
     drawNeuralNetwork() {
         this.ctx.save();
-        
+
         // 绘制神经网络节点和连接
         const nodes = 20;
         const networkNodes = [];
-        
+
         for (let i = 0; i < nodes; i++) {
             networkNodes.push({
                 x: Math.random() * this.width,
@@ -332,18 +332,18 @@ class AudioVisualizer {
                 energy: this.dataArray[i * Math.floor(this.bufferLength / nodes)] / 255
             });
         }
-        
+
         // 绘制连接
         this.ctx.strokeStyle = `rgba(102, 126, 234, 0.3)`;
         this.ctx.lineWidth = 1;
-        
+
         for (let i = 0; i < networkNodes.length; i++) {
             for (let j = i + 1; j < networkNodes.length; j++) {
                 const distance = Math.hypot(
                     networkNodes[i].x - networkNodes[j].x,
                     networkNodes[i].y - networkNodes[j].y
                 );
-                
+
                 if (distance < 150) {
                     const opacity = (1 - distance / 150) * 0.5;
                     this.ctx.strokeStyle = `rgba(102, 126, 234, ${opacity})`;
@@ -354,7 +354,7 @@ class AudioVisualizer {
                 }
             }
         }
-        
+
         // 绘制节点
         networkNodes.forEach(node => {
             const size = 5 + node.energy * 15;
@@ -362,79 +362,79 @@ class AudioVisualizer {
                 node.x, node.y, 0,
                 node.x, node.y, size
             );
-            
+
             gradient.addColorStop(0, `rgba(240, 147, 251, ${0.8 + node.energy * 0.2})`);
             gradient.addColorStop(1, `rgba(240, 147, 251, 0)`);
-            
+
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
             this.ctx.fill();
         });
-        
+
         this.ctx.restore();
     }
 
     drawLiquidMorphing() {
         this.ctx.save();
-        
+
         // 创建液体效果
         this.waves.forEach((wave, i) => {
             const points = [];
             const segments = 50;
-            
+
             for (let j = 0; j <= segments; j++) {
                 const x = (j / segments) * this.width;
                 const baseY = this.centerY + Math.sin(x * wave.frequency + this.time * wave.speed + wave.phase) * wave.amplitude;
                 const audioY = baseY + (this.dataArray[j % this.bufferLength] / 255) * 100;
                 points.push({ x, y: audioY });
             }
-            
+
             // 绘制波浪
             this.ctx.strokeStyle = `rgba(${wave.color}, ${wave.opacity * this.breatheIntensity})`;
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
             this.ctx.moveTo(points[0].x, points[0].y);
-            
+
             for (let j = 1; j < points.length; j++) {
                 const cp1x = points[j-1].x + (points[j].x - points[j-1].x) / 3;
                 const cp1y = points[j-1].y;
                 const cp2x = points[j].x - (points[j].x - points[j-1].x) / 3;
                 const cp2y = points[j].y;
-                
+
                 this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, points[j].x, points[j].y);
             }
-            
+
             this.ctx.stroke();
         });
-        
+
         this.ctx.restore();
     }
 
     drawQuantumField() {
         this.ctx.save();
-        
+
         // 绘制量子场效果
         const gridSize = 30;
         const cols = Math.ceil(this.width / gridSize);
         const rows = Math.ceil(this.height / gridSize);
-        
+
         for (let i = 0; i < cols; i++) {
             for (let j = 0; j < rows; j++) {
                 const x = i * gridSize;
                 const y = j * gridSize;
                 const index = (i + j) % this.bufferLength;
                 const energy = this.dataArray[index] / 255;
-                
+
                 if (energy > 0.3) {
                     const size = energy * 20;
                     const opacity = energy * 0.8;
-                    
+
                     this.ctx.fillStyle = `rgba(79, 172, 254, ${opacity})`;
                     this.ctx.beginPath();
                     this.ctx.arc(x, y, size, 0, Math.PI * 2);
                     this.ctx.fill();
-                    
+
                     // 添加连接线
                     if (i > 0 && j > 0) {
                         const prevEnergy = this.dataArray[((i-1) + (j-1)) % this.bufferLength] / 255;
@@ -450,50 +450,50 @@ class AudioVisualizer {
                 }
             }
         }
-        
+
         this.ctx.restore();
     }
 
     drawAuroraEffect() {
         this.ctx.save();
-        
+
         // 创建极光效果
         const numLayers = 8;
-        
+
         for (let layer = 0; layer < numLayers; layer++) {
             const gradient = this.ctx.createLinearGradient(0, 0, this.width, this.height);
             const colors = this.getThemeColors();
             const alpha = (1 - layer / numLayers) * 0.3 * this.breatheIntensity;
-            
+
             gradient.addColorStop(0, `rgba(${colors.primary}, ${alpha})`);
             gradient.addColorStop(0.5, `rgba(${colors.secondary}, ${alpha * 0.7})`);
             gradient.addColorStop(1, `rgba(${colors.tertiary}, ${alpha * 0.5})`);
-            
+
             this.ctx.fillStyle = gradient;
-            
+
             this.ctx.beginPath();
             this.ctx.moveTo(0, this.height);
-            
+
             for (let x = 0; x <= this.width; x += 5) {
                 const audioIndex = Math.floor((x / this.width) * this.bufferLength);
                 const audioValue = this.dataArray[audioIndex] / 255;
                 const baseWave = Math.sin((x / this.width) * Math.PI * 4 + this.time + layer) * 30;
                 const audioWave = audioValue * 80;
                 const y = this.centerY + baseWave + audioWave - layer * 10;
-                
+
                 if (x === 0) {
                     this.ctx.moveTo(x, y);
                 } else {
                     this.ctx.lineTo(x, y);
                 }
             }
-            
+
             this.ctx.lineTo(this.width, this.height);
             this.ctx.lineTo(0, this.height);
             this.ctx.closePath();
             this.ctx.fill();
         }
-        
+
         this.ctx.restore();
     }
 
@@ -503,12 +503,12 @@ class AudioVisualizer {
             this.centerX, this.centerY, 0,
             this.centerX, this.centerY, radius
         );
-        
+
         const colors = this.getThemeColors();
         gradient.addColorStop(0, `rgba(${colors.primary}, 0)`);
         gradient.addColorStop(0.7, `rgba(${colors.secondary}, 0.1)`);
         gradient.addColorStop(1, `rgba(${colors.tertiary}, 0.3)`);
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
     }
@@ -563,9 +563,9 @@ class AudioVisualizer {
         const fade = () => {
             this.ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
             this.ctx.fillRect(0, 0, this.width, this.height);
-            
+
             if (this.isPlaying) return;
-            
+
             setTimeout(fade, 50);
         };
         fade();
@@ -593,38 +593,38 @@ class CosmicParticle {
         this.y += this.vy * (1 + globalEnergy / 255);
         this.life -= 1;
         this.spin += this.spinSpeed;
-        
+
         // 重力效果
         this.vy += 0.02;
-        
+
         // 湍流效果
         this.vx += Math.sin(time + this.x * 0.01) * 0.1;
         this.vy += Math.cos(time + this.y * 0.01) * 0.1;
-        
+
         this.size *= 0.995;
     }
 
     draw(ctx, breatheIntensity) {
         if (this.life <= 0) return;
-        
+
         const alpha = (this.life / this.maxLife) * 0.8 * breatheIntensity;
         const size = this.size * (1 + Math.sin(this.spin) * 0.3);
-        
+
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(this.x, this.y);
         ctx.rotate(this.spin);
-        
+
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
         gradient.addColorStop(0, `rgba(${this.color}, 1)`);
         gradient.addColorStop(0.7, `rgba(${this.color}, 0.5)`);
         gradient.addColorStop(1, `rgba(${this.color}, 0)`);
-        
+
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(0, 0, size, 0, Math.PI * 2);
         ctx.fill();
-        
+
         ctx.restore();
     }
 }

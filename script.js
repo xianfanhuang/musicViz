@@ -24,6 +24,7 @@ class MusicPlayer {
         this.setupEventListeners();
         this.setupVisualizer();
         this.updateUI();
+        this.loadState();
     }
 
     async initializeAudioContext() {
@@ -79,6 +80,13 @@ class MusicPlayer {
         this.audioElement.addEventListener('ended', this.onTrackEnded.bind(this));
         this.audioElement.addEventListener('play', this.onPlay.bind(this));
         this.audioElement.addEventListener('pause', this.onPause.bind(this));
+
+        // 播放列表管理
+        document.getElementById('clearPlaylistBtn').addEventListener('click', this.clearPlaylist.bind(this));
+        document.getElementById('playlist').addEventListener('click', this.handlePlaylistClick.bind(this));
+
+        // Immersive Mode
+        document.getElementById('immersiveBtn').addEventListener('click', this.toggleImmersiveMode.bind(this));
     }
 
     setupVisualizer() {
@@ -108,8 +116,8 @@ class MusicPlayer {
     }
 
     async processFiles(files) {
-        const audioFiles = files.filter(file => 
-            file.type.startsWith('audio/') || 
+        const audioFiles = files.filter(file =>
+            file.type.startsWith('audio/') ||
             window.audioDecoder.detectFormat(file)
         );
 
@@ -152,7 +160,7 @@ class MusicPlayer {
                 };
 
                 this.playlist.push(track);
-                this.addToPlaylistUI(track);
+                this.addToPlaylistUI(track, this.playlist.length - 1);
 
                 console.log(`文件处理完成: ${track.metadata.title} (${result.originalFormat} → ${result.decodedFormat})`);
                 processed++;
@@ -175,6 +183,7 @@ class MusicPlayer {
             this.loadTrack(0);
         }
 
+        this.saveState();
         this.showNotification(`成功处理 ${this.playlist.length} 个音频文件`, 'success');
     }
 
@@ -195,10 +204,10 @@ class MusicPlayer {
 
         try {
             console.log('开始探嗅URL:', url);
-            
+
             // 使用网络探嗅器解析音频
             const audioList = await window.networkSniffer.sniffAudio(url);
-            
+
             console.log('探嗅成功，找到音频:', audioList.length);
 
             // 将探嗅到的音频添加到播放列表
@@ -222,7 +231,7 @@ class MusicPlayer {
                     };
 
                     this.playlist.push(track);
-                    this.addToPlaylistUI(track);
+                    this.addToPlaylistUI(track, this.playlist.length - 1);
                     addedCount++;
 
                     console.log(`已添加: ${track.metadata.title} - ${track.metadata.artist}`);
@@ -232,8 +241,9 @@ class MusicPlayer {
             }
 
             if (addedCount > 0) {
+                this.saveState();
                 this.showNotification(`成功添加 ${addedCount} 首音频到播放列表`, 'success');
-                
+
                 // 如果当前没有播放音频，加载第一首
                 if (!this.isPlaying && this.playlist.length > 0) {
                     await this.loadTrack(this.playlist.length - addedCount);
@@ -256,21 +266,21 @@ class MusicPlayer {
         }
     }
 
-    addToPlaylistUI(track) {
+    addToPlaylistUI(track, index) {
         const playlist = document.getElementById('playlist');
         const item = document.createElement('div');
         item.className = 'playlist-item';
         item.dataset.trackId = track.id;
 
         // 添加格式标识和来源信息
-        const formatBadge = track.originalFormat !== track.decodedFormat ? 
+        const formatBadge = track.originalFormat !== track.decodedFormat ?
             `<span class="format-badge" title="原格式: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>` : '';
-        
-        const sourceBadge = track.originalFormat ? 
+
+        const sourceBadge = track.originalFormat ?
             `<span class="format-badge" title="来源: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>` : '';
 
         item.innerHTML = `
-            <div class="track-number">${this.playlist.length}</div>
+            <div class="track-number">${index + 1}</div>
             <div class="track-details">
                 <div class="track-name">
                     ${track.metadata.title}
@@ -281,6 +291,7 @@ class MusicPlayer {
                     <span class="track-duration">${this.formatTime(track.metadata.duration)}</span>
                 </div>
             </div>
+            <button class="remove-track-btn" data-track-id="${track.id}">✕</button>
         `;
 
         item.addEventListener('click', () => {
@@ -304,21 +315,21 @@ class MusicPlayer {
 
         try {
             console.log('正在加载音频:', track.metadata.title, track.url);
-            
+
             // 验证音频URL
             if (!track.url || track.url.includes('undefined')) {
                 throw new Error('音频URL无效');
             }
-            
+
             // 设置音频源
             this.audioElement.src = track.url;
-            
+
             // 添加加载完成处理
             const loadHandler = () => {
                 console.log('音频加载成功:', track.metadata.title);
                 this.showNotification(`已加载: ${track.metadata.title}`, 'success');
             };
-            
+
             // 添加错误处理
             const errorHandler = (error) => {
                 console.error('音频加载失败:', error);
@@ -327,13 +338,14 @@ class MusicPlayer {
 
             this.audioElement.addEventListener('loadeddata', loadHandler, { once: true });
             this.audioElement.addEventListener('error', errorHandler, { once: true });
-            
+
             // 尝试预加载
             this.audioElement.load();
-            
+
             this.updateTrackInfo(track.metadata);
             this.updatePlaylistUI();
-            
+            this.saveState();
+
         } catch (error) {
             console.error('加载音频失败:', error);
             this.showNotification(`加载失败: ${error.message}`, 'error');
@@ -350,6 +362,131 @@ class MusicPlayer {
         items.forEach((item, index) => {
             item.classList.toggle('active', index === this.currentTrackIndex);
         });
+    }
+
+    rerenderPlaylistUI() {
+        const playlistContainer = document.getElementById('playlist');
+        playlistContainer.innerHTML = '';
+        this.playlist.forEach((track, index) => this.addToPlaylistUI(track, index));
+        this.updatePlaylistUI();
+    }
+
+    removeTrack(trackId) {
+        const indexToRemove = this.playlist.findIndex(t => t.id === trackId);
+        if (indexToRemove === -1) return;
+
+        // If removing the currently playing track
+        if (indexToRemove === this.currentTrackIndex) {
+            if (this.playlist.length === 1) {
+                this.clearPlaylist();
+                return;
+            }
+            // Play the next track without disrupting the removal logic
+            this.currentTrackIndex = (this.currentTrackIndex) % (this.playlist.length - 1);
+            this.loadTrack(this.currentTrackIndex);
+        }
+
+        // Remove from the playlist array
+        this.playlist.splice(indexToRemove, 1);
+
+        // Adjust the current track index if a preceding track was removed
+        if (indexToRemove < this.currentTrackIndex) {
+            this.currentTrackIndex--;
+        }
+
+        this.rerenderPlaylistUI();
+        this.saveState();
+    }
+
+    clearPlaylist() {
+        this.playlist = [];
+        this.currentTrackIndex = 0;
+        this.isPlaying = false;
+        this.audioElement.src = '';
+        this.audioElement.pause();
+        this.rerenderPlaylistUI();
+        this.updateTrackInfo({ title: '选择音频文件开始播放', artist: '' });
+        this.updateUI();
+        this.saveState();
+    }
+
+    handlePlaylistClick(e) {
+        if (e.target.classList.contains('remove-track-btn')) {
+            e.stopPropagation(); // Prevent the track from playing when clicking remove
+            const trackId = e.target.dataset.trackId;
+            this.removeTrack(trackId);
+        }
+    }
+
+    saveState() {
+        // Filter out tracks from local files (blob URLs) as they can't be persisted
+        const persistablePlaylist = this.playlist.filter(track => !track.url.startsWith('blob:'));
+
+        if (persistablePlaylist.length === 0 && this.playlist.length > 0) {
+            // Don't save state if it would wipe out a local-only playlist
+            return;
+        }
+
+        const state = {
+            playlist: persistablePlaylist,
+            currentTrackIndex: this.currentTrackIndex,
+            isShuffleOn: this.isShuffleOn,
+            repeatMode: this.repeatMode,
+            volume: this.audioElement.volume
+        };
+        localStorage.setItem('musicPlayerState', JSON.stringify(state));
+    }
+
+    loadState() {
+        const savedState = localStorage.getItem('musicPlayerState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            this.playlist = state.playlist || [];
+            this.isShuffleOn = state.isShuffleOn || false;
+            this.repeatMode = state.repeatMode || 0;
+            this.audioElement.volume = state.volume || 0.8;
+            document.getElementById('volumeSlider').value = (state.volume || 0.8) * 100;
+
+            // Restore UI for settings
+            this.updateVolumeIcon();
+            if (this.isShuffleOn) {
+                document.getElementById('shuffleBtn').style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+            }
+            const repeatBtn = document.getElementById('repeatBtn');
+            const repeatModes = ['🔁', '🔂', '🔁'];
+            const repeatColors = ['rgba(255, 255, 255, 0.2)', 'linear-gradient(135deg, #667eea, #764ba2)', 'linear-gradient(135deg, #ff6b6b, #ee5a24)'];
+            repeatBtn.textContent = repeatModes[this.repeatMode];
+            repeatBtn.style.background = repeatColors[this.repeatMode];
+
+
+            if (this.playlist.length > 0) {
+                this.currentTrackIndex = state.currentTrackIndex || 0;
+                this.rerenderPlaylistUI();
+                // Load the track metadata, but don't play automatically
+                this.loadTrack(this.currentTrackIndex);
+            }
+        }
+    }
+
+    toggleImmersiveMode() {
+        const body = document.body;
+        const btn = document.getElementById('immersiveBtn');
+        body.classList.toggle('immersive-mode');
+
+        if (body.classList.contains('immersive-mode')) {
+            btn.innerHTML = '✕'; // Change to close icon
+            btn.title = '退出沉浸模式';
+        } else {
+            btn.innerHTML = '⤢'; // Change back to expand icon
+            btn.title = '沉浸模式';
+        }
+
+        // Trigger canvas resize after the CSS transition
+        setTimeout(() => {
+            if (this.visualizer && typeof this.visualizer.resizeCanvas === 'function') {
+                this.visualizer.resizeCanvas();
+            }
+        }, 500); // 500ms matches the CSS transition duration
     }
 
     async togglePlay() {
@@ -413,9 +550,10 @@ class MusicPlayer {
     toggleShuffle() {
         this.isShuffleOn = !this.isShuffleOn;
         const btn = document.getElementById('shuffleBtn');
-        btn.style.background = this.isShuffleOn ? 
-            'linear-gradient(135deg, #667eea, #764ba2)' : 
+        btn.style.background = this.isShuffleOn ?
+            'linear-gradient(135deg, #667eea, #764ba2)' :
             'rgba(255, 255, 255, 0.2)';
+        this.saveState();
     }
 
     toggleRepeat() {
@@ -430,6 +568,7 @@ class MusicPlayer {
 
         btn.textContent = modes[this.repeatMode];
         btn.style.background = colors[this.repeatMode];
+        this.saveState();
     }
 
     seekTo(e) {
@@ -446,6 +585,7 @@ class MusicPlayer {
         this.volume = e.target.value / 100;
         this.audioElement.volume = this.volume;
         this.updateVolumeIcon();
+        this.saveState();
     }
 
     toggleMute() {
@@ -538,9 +678,9 @@ class MusicPlayer {
         const percentage = (this.audioElement.currentTime / this.audioElement.duration) * 100;
         document.getElementById('progressFill').style.width = percentage + '%';
 
-        document.getElementById('currentTime').textContent = 
+        document.getElementById('currentTime').textContent =
             this.formatTime(this.audioElement.currentTime);
-        document.getElementById('totalTime').textContent = 
+        document.getElementById('totalTime').textContent =
             this.formatTime(this.audioElement.duration);
     }
 
