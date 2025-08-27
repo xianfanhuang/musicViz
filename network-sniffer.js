@@ -167,7 +167,8 @@ class NetworkAudioSniffer {
 
             // 1. 获取歌曲详情
             const detailUrl = `${apiUrl}/song/detail?ids=${songId}`;
-            const detailResponse = await fetch(detailUrl);
+            const proxyUrl = this.corsProxies[0] + encodeURIComponent(detailUrl);
+            const detailResponse = await fetch(proxyUrl);
             const detailData = await detailResponse.json();
             if (!detailData.songs || detailData.songs.length === 0) {
                 throw new Error('无法获取歌曲详情');
@@ -176,7 +177,8 @@ class NetworkAudioSniffer {
 
             // 2. 获取歌曲播放URL
             const songUrlUrl = `${apiUrl}/song/url?id=${songId}`;
-            const songUrlResponse = await fetch(songUrlUrl);
+            const proxySongUrl = this.corsProxies[0] + encodeURIComponent(songUrlUrl);
+            const songUrlResponse = await fetch(proxySongUrl);
             const songUrlData = await songUrlResponse.json();
             if (!songUrlData.data || songUrlData.data.length === 0 || !songUrlData.data[0].url) {
                 throw new Error('无法获取歌曲播放地址');
@@ -209,7 +211,8 @@ class NetworkAudioSniffer {
 
             // 1. 获取歌单详情
             const playlistUrl = `${apiUrl}/playlist/detail?id=${playlistId}`;
-            const playlistResponse = await fetch(playlistUrl);
+            const proxyPlaylistUrl = this.corsProxies[0] + encodeURIComponent(playlistUrl);
+            const playlistResponse = await fetch(proxyPlaylistUrl);
             const playlistData = await playlistResponse.json();
             if (!playlistData.playlist || !playlistData.playlist.tracks) {
                 throw new Error('无法获取歌单详情');
@@ -220,7 +223,8 @@ class NetworkAudioSniffer {
 
             // 2. 获取所有歌曲的播放URL
             const songUrlsUrl = `${apiUrl}/song/url?id=${trackIds.join(',')}`;
-            const songUrlsResponse = await fetch(songUrlsUrl);
+            const proxySongUrlsUrl = this.corsProxies[0] + encodeURIComponent(songUrlsUrl);
+            const songUrlsResponse = await fetch(proxySongUrlsUrl);
             const songUrlsData = await songUrlsResponse.json();
             const urlMap = new Map(songUrlsData.data.map(s => [s.id, s.url]));
 
