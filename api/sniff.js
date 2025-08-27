@@ -2,7 +2,7 @@
 const https = require('https');
 
 // The underlying NetEase API we are proxying
-const NETEASE_API_HOST = 'musicviz-3ynqpajpl-xianfanhuangs-projects.vercel.app';
+const NETEASE_API_HOST = 'netease-cloud-music-api-nine-delta.vercel.app';
 
 // Helper function to make an HTTPS request and get JSON response
 function fetchJson(path) {

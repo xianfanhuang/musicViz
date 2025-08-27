@@ -140,8 +140,8 @@ class NetworkAudioSniffer {
         try {
             console.log('解析网易云音乐URL via own proxy:', url);
 
-            // Our backend proxy endpoint is relative to the current host
-            const proxyApiUrl = `/api/sniff?url=${encodeURIComponent(url)}`;
+            // Our backend proxy endpoint is the user's Vercel deployment
+            const proxyApiUrl = `https://musicviz-3ynqpajpl-xianfanhuangs-projects.vercel.app/api/sniff?url=${encodeURIComponent(url)}`;
 
             const response = await fetch(proxyApiUrl);
 
