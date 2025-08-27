@@ -138,118 +138,32 @@ class NetworkAudioSniffer {
      */
     async extractNetease(url) {
         try {
-            console.log('解析网易云音乐URL:', url);
-            const apiUrl = 'https://netease-cloud-music-api-nine-delta.vercel.app';
+            console.log('解析网易云音乐URL via own proxy:', url);
 
-            // 检查是否为歌单或单曲
-            const playlistMatch = url.match(/playlist.*?id=(\d+)/);
-            const songMatch = url.match(/song.*?id=(\d+)/);
+            // Our backend proxy endpoint is relative to the current host
+            const proxyApiUrl = `/api/sniff?url=${encodeURIComponent(url)}`;
 
-            if (playlistMatch) {
-                return await this.extractNeteasePlaylist(playlistMatch[1], apiUrl);
-            } else if (songMatch) {
-                return await this.extractNeteaseSong(songMatch[1], apiUrl);
-            } else {
-                throw new Error('无法识别的网易云音乐链接格式');
+            const response = await fetch(proxyApiUrl);
+
+            if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { details: await response.text() };
+                }
+                throw new Error(`Proxy error: ${errorData.details || response.statusText}`);
             }
+
+            const data = await response.json();
+
+            // The backend returns the data in the exact format the frontend expects.
+            // It will be an array of track objects.
+            return data;
+
         } catch (error) {
             console.error('网易云音乐提取失败:', error);
             throw new Error(`网易云音乐提取失败: ${error.message}`);
-        }
-    }
-
-    /**
-     * 提取网易云单曲
-     */
-    async extractNeteaseSong(songId, apiUrl) {
-        try {
-            console.log('提取单曲ID:', songId);
-
-            // 1. 获取歌曲详情
-            const detailUrl = `${apiUrl}/song/detail?ids=${songId}`;
-            const proxyUrl = this.corsProxies[0] + encodeURIComponent(detailUrl);
-            const detailResponse = await fetch(proxyUrl);
-            const detailData = await detailResponse.json();
-            if (!detailData.songs || detailData.songs.length === 0) {
-                throw new Error('无法获取歌曲详情');
-            }
-            const songInfo = detailData.songs[0];
-
-            // 2. 获取歌曲播放URL
-            const songUrlUrl = `${apiUrl}/song/url?id=${songId}`;
-            const proxySongUrl = this.corsProxies[0] + encodeURIComponent(songUrlUrl);
-            const songUrlResponse = await fetch(proxySongUrl);
-            const songUrlData = await songUrlResponse.json();
-            if (!songUrlData.data || songUrlData.data.length === 0 || !songUrlData.data[0].url) {
-                throw new Error('无法获取歌曲播放地址');
-            }
-            const audioUrl = songUrlData.data[0].url;
-
-            return [{
-                title: songInfo.name,
-                artist: songInfo.ar.map(a => a.name).join('/'),
-                album: songInfo.al.name,
-                url: audioUrl,
-                duration: songInfo.dt / 1000,
-                format: 'mp3',
-                cover: songInfo.al.picUrl,
-                source: 'netease',
-                songId: songId
-            }];
-        } catch (error) {
-            console.error('提取单曲失败:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 提取网易云歌单
-     */
-    async extractNeteasePlaylist(playlistId, apiUrl) {
-        try {
-            console.log('正在解析歌单:', playlistId);
-
-            // 1. 获取歌单详情
-            const playlistUrl = `${apiUrl}/playlist/detail?id=${playlistId}`;
-            const proxyPlaylistUrl = this.corsProxies[0] + encodeURIComponent(playlistUrl);
-            const playlistResponse = await fetch(proxyPlaylistUrl);
-            const playlistData = await playlistResponse.json();
-            if (!playlistData.playlist || !playlistData.playlist.tracks) {
-                throw new Error('无法获取歌单详情');
-            }
-
-            const trackIds = playlistData.playlist.tracks.map(t => t.id);
-            const songsInfo = playlistData.playlist.tracks;
-
-            // 2. 获取所有歌曲的播放URL
-            const songUrlsUrl = `${apiUrl}/song/url?id=${trackIds.join(',')}`;
-            const proxySongUrlsUrl = this.corsProxies[0] + encodeURIComponent(songUrlsUrl);
-            const songUrlsResponse = await fetch(proxySongUrlsUrl);
-            const songUrlsData = await songUrlsResponse.json();
-            const urlMap = new Map(songUrlsData.data.map(s => [s.id, s.url]));
-
-            const songs = songsInfo.map(song => {
-                const audioUrl = urlMap.get(song.id);
-                if (!audioUrl) return null;
-
-                return {
-                    title: song.name,
-                    artist: song.ar.map(a => a.name).join('/'),
-                    album: song.al.name,
-                    url: audioUrl,
-                    duration: song.dt / 1000,
-                    format: 'mp3',
-                    cover: song.al.picUrl,
-                    source: 'netease',
-                    songId: song.id.toString()
-                };
-            }).filter(Boolean); // 过滤掉没有获取到URL的歌曲
-
-            return songs;
-
-        } catch (error) {
-            console.error('歌单解析失败:', error);
-            throw error;
         }
     }
 
