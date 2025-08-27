@@ -24,17 +24,17 @@ class ThreeVisualizer {
         const positions = new Float32Array(particleCount * 3);
 
         for (let i = 0; i < particleCount * 3; i++) {
-            positions[i] = (Math.random() - 0.5) * 200; // Distribute particles in a cube
+            positions[i] = (Math.random() - 0.5) * 200;
         }
 
         particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
         const material = new THREE.PointsMaterial({
-            color: 0x667eea,
-            size: 0.5,
+            color: 0x8899ff, // Brighter default color
+            size: 1.5,       // Increased size
             blending: THREE.AdditiveBlending,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.9
         });
 
         this.particleSystem = new THREE.Points(particles, material);
@@ -53,12 +53,12 @@ class ThreeVisualizer {
     }
 
     connectAudio(audioElement) {
-        if (this.analyser) return; // Connect only once
+        if (this.analyser) return;
         const listener = new THREE.AudioListener();
-        this.camera.add(listener); // Attach listener to camera
+        this.camera.add(listener);
         const audio = new THREE.Audio(listener);
         audio.setMediaElementSource(audioElement);
-        this.analyser = new THREE.AudioAnalyser(audio, 128); // fftSize = 128
+        this.analyser = new THREE.AudioAnalyser(audio, 128);
     }
 
     animate() {
@@ -67,18 +67,16 @@ class ThreeVisualizer {
         if (this.analyser) {
             const avgFrequency = this.analyser.getAverageFrequency();
 
-            // The "breathing" effect
-            const scale = 1 + avgFrequency / 128;
+            // Amplified "breathing" effect
+            const scale = 1 + (avgFrequency / 128) * 1.5;
             this.particleSystem.scale.set(scale, scale, scale);
         }
 
-        // Gentle rotation
         this.particleSystem.rotation.y += 0.001;
 
         this.renderer.render(this.scene, this.camera);
     }
 
-    // Dummy methods to match the old class interface
     start() {}
     stop() {}
     setMode(mode) {}
@@ -86,14 +84,14 @@ class ThreeVisualizer {
         if (this.particleSystem) {
             let color;
             switch(theme) {
-                case 'fire': color = 0xff6b6b; break;
-                case 'ocean': color = 0x4facfe; break;
-                case 'forest': color = 0x54d068; break;
-                default: color = 0x667eea; // aurora
+                case 'fire': color = 0xff8866; break;
+                case 'ocean': color = 0x66ccff; break;
+                case 'forest': color = 0x77ff88; break;
+                default: color = 0x8899ff; // aurora (brighter)
             }
             this.particleSystem.material.color.setHex(color);
         }
     }
 }
 
-window.AudioVisualizer = ThreeVisualizer; // Overwrite the global class
+window.AudioVisualizer = ThreeVisualizer;
