@@ -63,7 +63,6 @@ class MusicPlayer {
         muteBtn.addEventListener('click', this.toggleMute.bind(this));
 
         // 可视化控制
-        document.getElementById('visualizerMode').addEventListener('change', this.changeVisualizerMode.bind(this));
         document.getElementById('colorTheme').addEventListener('change', this.changeColorTheme.bind(this));
 
         // URL探嗅
@@ -609,12 +608,6 @@ class MusicPlayer {
             muteBtn.textContent = '🔉';
         } else {
             muteBtn.textContent = '🔊';
-        }
-    }
-
-    changeVisualizerMode(e) {
-        if (this.visualizer) {
-            this.visualizer.setMode(e.target.value);
         }
     }
 

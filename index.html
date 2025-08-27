@@ -73,15 +73,6 @@
             <button id="immersiveBtn" class="immersive-btn" title="沉浸模式">⤢</button>
             <canvas id="visualizerCanvas"></canvas>
             <div class="visualizer-controls">
-                <label>可视化模式:</label>
-                <select id="visualizerMode">
-                    <option value="cosmic">宇宙星云</option>
-                    <option value="neural">神经网络</option>
-                    <option value="liquid">液体变形</option>
-                    <option value="quantum">量子场</option>
-                    <option value="aurora">极光幻境</option>
-                </select>
-
                 <label>艺术主题:</label>
                 <select id="colorTheme">
                     <option value="aurora">极光蓝紫</option>
@@ -103,9 +94,10 @@
     </div>
 
     <audio id="audioPlayer" preload="auto"></audio>
+    <script src="https://cdn.jsdelivr.net/npm/three-full@28.0.2/builds/Three.iife.min.js"></script>
     <script src="audio-decoder.js"></script>
     <script src="network-sniffer.js"></script>
-    <script src="visualizer.js"></script>
+    <script src="visualizer-three.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
