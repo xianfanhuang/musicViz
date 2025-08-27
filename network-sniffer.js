@@ -140,25 +140,24 @@ class NetworkAudioSniffer {
         try {
             console.log('解析网易云音乐URL via own proxy:', url);
 
-            // Our backend proxy endpoint is the user's Vercel deployment
             const proxyApiUrl = `https://musicviz-3ynqpajpl-xianfanhuangs-projects.vercel.app/api/sniff?url=${encodeURIComponent(url)}`;
 
             const response = await fetch(proxyApiUrl);
 
             if (!response.ok) {
-                let errorData;
+                // Use a cloned response for error handling to avoid "body disturbed" errors
+                const errorResponse = response.clone();
+                let errorDetails = `Proxy error (${response.status}): ${response.statusText}`;
                 try {
-                    errorData = await response.json();
+                    const errorData = await errorResponse.json();
+                    errorDetails = errorData.details || errorData.error || response.statusText;
                 } catch (e) {
-                    errorData = { details: await response.text() };
+                    // The body might not be JSON, which is fine. The status text is enough.
                 }
-                throw new Error(`Proxy error: ${errorData.details || response.statusText}`);
+                throw new Error(errorDetails);
             }
 
             const data = await response.json();
-
-            // The backend returns the data in the exact format the frontend expects.
-            // It will be an array of track objects.
             return data;
 
         } catch (error) {
