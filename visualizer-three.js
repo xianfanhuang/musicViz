@@ -25,6 +25,7 @@ class ThreeVisualizer {
         this.currentColor = new THREE.Color(0x8899ff);
 
         this.createParticles();
+        this.createOceanicTheme();
 
         this.resizeCanvas();
         window.addEventListener('resize', this.resizeCanvas.bind(this), false);
@@ -63,6 +64,42 @@ class ThreeVisualizer {
 
         this.particleSystem = new THREE.Points(this.particles, material);
         this.scene.add(this.particleSystem);
+    }
+
+    createOceanicTheme() {
+        const geometry = new THREE.PlaneGeometry(500, 500, 100, 100);
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                u_time: { value: 0.0 },
+                u_frequency: { value: 0.0 },
+            },
+            vertexShader: `
+                uniform float u_time;
+                uniform float u_frequency;
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    float wave = sin(pos.x * 0.1 + u_time) * cos(pos.y * 0.1 + u_time) * 10.0;
+                    pos.z = wave * u_frequency;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float u_time;
+                varying vec2 vUv;
+                void main() {
+                    vec3 color = vec3(vUv.x, vUv.y, 1.0);
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `,
+            wireframe: true,
+        });
+
+        this.oceanicPlane = new THREE.Mesh(geometry, material);
+        this.oceanicPlane.rotation.x = -Math.PI / 2;
+        this.oceanicPlane.visible = false;
+        this.scene.add(this.oceanicPlane);
     }
 
     resizeCanvas() {
@@ -165,8 +202,14 @@ class ThreeVisualizer {
             const data = this.analyser.getFrequencyData();
             const avgFrequency = this.analyser.getAverageFrequency();
 
-            // Emotion-based color
-            if (!this.manualTheme) {
+            // Update oceanic theme uniforms
+            if (this.oceanicPlane && this.oceanicPlane.visible) {
+                this.oceanicPlane.material.uniforms.u_time.value = this.clock.elapsedTime;
+                this.oceanicPlane.material.uniforms.u_frequency.value = avgFrequency / 255;
+            }
+
+            // Emotion-based color (only for particle system)
+            if (this.particleSystem.visible && !this.manualTheme) {
                 const emotion = this.getEmotionFromAudio(avgFrequency);
                 const targetPalette = this.colorPalettes[emotion];
                 const targetColor = targetPalette[Math.floor(this.clock.elapsedTime / 5) % targetPalette.length];
@@ -234,18 +277,33 @@ class ThreeVisualizer {
     }
 
     setColorTheme(theme) {
-        if (this.particleSystem) {
-            this.manualTheme = true; // Disable automatic color changes
-            let color;
-            switch(theme) {
-                case 'fire': color = 0xff8866; break;
-                case 'ocean': color = 0x66ccff; break;
-                case 'forest': color = 0x77ff88; break;
-                case 'aurora':
-                default:
-                    this.manualTheme = false; // Re-enable automatic colors for default
-                    color = this.currentColor.getHex(); // Keep current color
-            }
+        this.manualTheme = true; // Disable automatic color by default
+        this.particleSystem.visible = true;
+        this.oceanicPlane.visible = false;
+
+        let color;
+        switch(theme) {
+            case 'oceanic_flow':
+                this.particleSystem.visible = false;
+                this.oceanicPlane.visible = true;
+                this.manualTheme = true; // No auto color for this theme yet
+                break;
+            case 'fire':
+                color = 0xff8866;
+                break;
+            case 'ocean':
+                color = 0x66ccff;
+                break;
+            case 'forest':
+                color = 0x77ff88;
+                break;
+            case 'aurora':
+            default:
+                this.manualTheme = false; // Re-enable automatic colors for default
+                color = this.currentColor.getHex(); // Keep current color
+        }
+
+        if (color) {
             this.particleSystem.material.color.setHex(color);
         }
     }

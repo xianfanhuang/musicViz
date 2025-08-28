@@ -877,3 +877,133 @@ body.immersive-mode #visualizerCanvas {
     color: #ff4757; /* Red color for delete action */
     opacity: 1;
 }
+
+/* Zero-Gravity UI Styles */
+.header,
+.input-section,
+.player-section,
+.playlist-section {
+    transition: opacity 0.5s ease-in-out;
+}
+
+body:not(.ui-visible) .header,
+body:not(.ui-visible) .input-section,
+body:not(.ui-visible) .player-section,
+body:not(.ui-visible) .playlist-section {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Recording Indicator Styles */
+.recording-indicator {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    background: rgba(200, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.recording-indicator.visible {
+    opacity: 1;
+}
+
+.rec-dot {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+    0%, 100% { transform: scale(0.8); opacity: 0.7; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Export Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 32px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.visible .modal-content {
+    transform: scale(1);
+}
+
+.modal-content h3 {
+    margin-bottom: 24px;
+    font-size: 1.6rem;
+}
+
+#exportPreview {
+    width: 100%;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    border: 1px solid var(--glass-border);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn.primary {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}

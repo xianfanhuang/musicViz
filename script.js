@@ -89,6 +89,15 @@ class MusicPlayer {
 
         // Video Export
         document.getElementById('exportVideoBtn').addEventListener('click', this.exportVideo.bind(this));
+
+        // Zero-Gravity UI
+        const appContainer = document.querySelector('.app-container');
+        appContainer.addEventListener('mouseenter', () => {
+            document.body.classList.add('ui-visible');
+        });
+        appContainer.addEventListener('mouseleave', () => {
+            document.body.classList.remove('ui-visible');
+        });
     }
 
     setupVisualizer() {
@@ -497,31 +506,43 @@ class MusicPlayer {
             return;
         }
 
-        this.showNotification('开始录制 8 秒视频...', 'info');
+        const recordingIndicator = document.getElementById('recordingIndicator');
+        const exportModal = document.getElementById('exportModal');
+        const exportPreview = document.getElementById('exportPreview');
+        const downloadExportBtn = document.getElementById('downloadExportBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        recordingIndicator.classList.add('visible');
 
         const canvas = this.visualizer.canvas;
-        const stream = canvas.captureStream(30); // 30 fps
+        const stream = canvas.captureStream(30);
         const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
 
         const chunks = [];
         recorder.ondataavailable = (e) => chunks.push(e.data);
         recorder.onstop = () => {
+            recordingIndicator.classList.remove('visible');
+
             const blob = new Blob(chunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `musicviz-export-${Date.now()}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            this.showNotification('视频导出成功!', 'success');
+
+            exportPreview.src = url;
+            downloadExportBtn.href = url;
+            downloadExportBtn.download = `musicviz-export-${Date.now()}.webm`;
+
+            exportModal.classList.add('visible');
+        };
+
+        closeModalBtn.onclick = () => {
+            exportModal.classList.remove('visible');
+            exportPreview.src = '';
+            URL.revokeObjectURL(exportPreview.src);
         };
 
         recorder.start();
         setTimeout(() => {
             recorder.stop();
-        }, 8000); // Record for 8 seconds
+        }, 8000);
     }
 
     async togglePlay() {

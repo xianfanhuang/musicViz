@@ -78,7 +78,8 @@
             <div class="visualizer-controls">
                 <label>艺术主题:</label>
                 <select id="colorTheme">
-                    <option value="aurora">极光蓝紫</option>
+                    <option value="aurora">极光蓝紫 (自动)</option>
+                    <option value="oceanic_flow">洋流 (新)</option>
                     <option value="fire">烈焰橙红</option>
                     <option value="ocean">深海蓝绿</option>
                     <option value="forest">翡翠森林</option>
@@ -97,6 +98,25 @@
     </div>
 
     <audio id="audioPlayer" preload="auto"></audio>
+
+    <!-- Recording Indicator -->
+    <div id="recordingIndicator" class="recording-indicator">
+        <div class="rec-dot"></div>
+        Recording...
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>视频导出</h3>
+            <video id="exportPreview" controls></video>
+            <div class="modal-actions">
+                <a id="downloadExportBtn" class="modal-btn primary" download>下载视频</a>
+                <button id="closeModalBtn" class="modal-btn">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/three-full@28.0.2/builds/Three.iife.min.js"></script>
     <script src="audio-decoder.js"></script>
     <script src="network-sniffer.js"></script>
