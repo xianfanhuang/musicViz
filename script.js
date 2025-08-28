@@ -90,13 +90,18 @@ class MusicPlayer {
         // Video Export
         document.getElementById('exportVideoBtn').addEventListener('click', this.exportVideo.bind(this));
 
-        // Zero-Gravity UI
-        const appContainer = document.querySelector('.app-container');
-        appContainer.addEventListener('mouseenter', () => {
-            document.body.classList.add('ui-visible');
+        // New Layout Interactions
+        const inputModal = document.getElementById('inputModal');
+        document.getElementById('addMusicBtn').addEventListener('click', () => {
+            inputModal.classList.add('visible');
         });
-        appContainer.addEventListener('mouseleave', () => {
-            document.body.classList.remove('ui-visible');
+        document.getElementById('closeInputModalBtn').addEventListener('click', () => {
+            inputModal.classList.remove('visible');
+        });
+
+        const playlistSection = document.querySelector('.playlist-section');
+        document.getElementById('togglePlaylistBtn').addEventListener('click', () => {
+            playlistSection.classList.toggle('visible');
         });
     }
 
