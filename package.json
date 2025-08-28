@@ -7,7 +7,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "build:github": "tsc && vite build --base=/musicviz/"
-    "build:github": "npm run build:static"
+    "build:static": "npm run build:static"
   },
   "dependencies": {
     "react": "^18.3.1",
