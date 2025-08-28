@@ -26,7 +26,7 @@ jobs:
         working-directory: client
         run: |
           npm ci
-          npm run build:github  # 修正为实际存在的脚本
+          npm run static  # 修正为实际存在的脚本
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
