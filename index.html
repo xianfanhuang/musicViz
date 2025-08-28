@@ -3,68 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音景</title>
+    <title>音景 · 重焕新生</title>
     <link href="style.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <canvas id="visualizerCanvas"></canvas>
+    <div class="background-overlay"></div>
 
-    <div class="app-container">
-        <h1 class="main-title">音景</h1>
+    <div class="player-container">
+        <div class="album-art-container">
+            <img id="albumArt" src="" alt="Album Art" class="album-art"/>
+            <div class="album-art-shadow"></div>
+        </div>
 
-        <div class="hud">
-            <div class="player-section">
-                <!-- This section is now a container for everything -->
-                <div class="main-controls">
-                    <div class="track-info">
-                        <div class="track-title" id="trackTitle">选择音频文件开始播放</div>
-                        <div class="track-artist" id="trackArtist"></div>
-                    </div>
-                    <div class="progress-container">
-                        <span class="time-display" id="currentTime">0:00</span>
-                        <div class="progress-bar" id="progressBar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
-                        <span class="time-display" id="totalTime">0:00</span>
-                    </div>
-                    <div class="player-controls">
-                        <button class="control-btn" id="addMusicBtn" title="添加音乐">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
-                        <button class="control-btn" id="prevBtn" title="上一首">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
-                        </button>
-                        <button class="control-btn play-btn" id="playBtn" title="播放/暂停">
-                            <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            <svg class="pause-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                        </button>
-                        <button class="control-btn" id="nextBtn" title="下一首">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-                        </button>
-                        <button class="control-btn" id="togglePlaylistBtn" title="播放列表">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                        </button>
-                    </div>
-                </div>
+        <div class="track-info">
+            <div class="track-title" id="trackTitle">选择音频文件开始播放</div>
+            <div class="track-artist" id="trackArtist"></div>
+        </div>
 
-                <div class="input-section">
-                    <div class="upload-area" id="uploadArea">
-                        <div class="upload-content">
-                            <p>拖拽音频文件或点击选择</p>
-                        </div>
-                        <input type="file" id="fileInput" accept=".mp3,.flac,.wav,.ogg,.m4a,.aac" multiple style="display: none;">
-                    </div>
-                    <div class="url-input-section">
-                        <div class="url-input-container">
-                            <input type="text" id="urlInput" placeholder="或输入音频/播放页面地址..." />
-                            <button id="sniffBtn" class="sniff-btn">🔍</button>
-                        </div>
-                    </div>
-                </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
+            <div class="time-display">
+                <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+            </div>
+        </div>
 
-            <div class="playlist-section">
-                <div class="playlist" id="playlist"></div>
+        <div class="main-controls">
+            <button class="control-btn" id="prevBtn" title="上一首">
+                <i class="fas fa-backward-step"></i>
+            </button>
+            <button class="control-btn play-btn" id="playBtn" title="播放/暂停">
+                <i class="fas fa-play play-icon"></i>
+                <i class="fas fa-pause pause-icon" style="display: none;"></i>
+            </button>
+            <button class="control-btn" id="nextBtn" title="下一首">
+                <i class="fas fa-forward-step"></i>
+            </button>
+        </div>
+
+        <div class="secondary-controls">
+             <button class="control-btn" id="addMusicBtn" title="添加音乐">
+                <i class="fas fa-plus"></i>
+            </button>
+            <div class="volume-control">
+                <button class="control-btn" id="muteBtn" title="静音">
+                    <i class="fas fa-volume-high"></i>
+                </button>
+                <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="80">
+            </div>
+            <button class="control-btn" id="togglePlaylistBtn" title="播放列表">
+                <i class="fas fa-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="playlist-container">
+        <div class="playlist-header">
+            <h3>播放列表</h3>
+            <button class="control-btn" id="closePlaylistBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="playlist" id="playlist"></div>
+    </div>
+
+    <div class="upload-modal">
+        <div class="upload-content">
+             <button class="control-btn close-upload-btn" id="closeUploadBtn"><i class="fas fa-times"></i></button>
+            <h3>添加音乐</h3>
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>拖拽音频文件或点击选择</p>
+                <input type="file" id="fileInput" accept=".mp3,.flac,.wav,.ogg,.m4a,.aac" multiple style="display: none;">
+            </div>
+            <div class="url-input-container">
+                <input type="text" id="urlInput" placeholder="或输入音频/播放页面地址..." />
+                <button id="sniffBtn" class="sniff-btn">嗅探</button>
             </div>
         </div>
     </div>
