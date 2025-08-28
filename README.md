@@ -21,7 +21,7 @@
 - 网络音频URL播放
 - 拖拽上传支持
 
-## 在线演示
+## 在线
 
 [点击访问在线版本](https://yourusername.github.io/music-visualizer/)
 
