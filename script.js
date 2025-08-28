@@ -261,11 +261,15 @@ class MusicPlayer {
         item.dataset.trackId = track.id;
 
         // 添加格式标识和来源信息
-        const formatBadge = track.originalFormat !== track.decodedFormat ?
-            `<span class="format-badge" title="原格式: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>` : '';
+        let formatBadge = '';
+        if (typeof track.originalFormat === 'string' && track.originalFormat && track.originalFormat !== track.decodedFormat) {
+            formatBadge = `<span class="format-badge" title="原格式: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>`;
+        }
 
-        const sourceBadge = track.originalFormat ?
-            `<span class="format-badge" title="来源: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>` : '';
+        let sourceBadge = '';
+        if (typeof track.originalFormat === 'string' && track.originalFormat) {
+            sourceBadge = `<span class="format-badge" title="来源: ${track.originalFormat}">${track.originalFormat.toUpperCase()}</span>`;
+        }
 
         item.innerHTML = `
             <div class="track-number">${index + 1}</div>

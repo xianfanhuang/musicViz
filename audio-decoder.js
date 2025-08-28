@@ -524,11 +524,12 @@ class AudioDecoder {
      * 处理标准音频格式
      */
     async processStandardAudio(file) {
+        const format = await this.detectFormat(file);
         return {
             audioData: file,
             metadata: await this.extractMetadata(file),
-            originalFormat: this.detectFormat(file),
-            decodedFormat: this.detectFormat(file)
+            originalFormat: format,
+            decodedFormat: format
         };
     }
 
