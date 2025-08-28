@@ -867,21 +867,7 @@ body.immersive-mode #visualizerCanvas {
     opacity: 1;
 }
 
-/* Zero-Gravity UI Styles */
-.header,
-.input-section,
-.player-section,
-.playlist-section {
-    transition: opacity 0.5s ease-in-out;
-}
-
-body:not(.ui-visible) .header,
-body:not(.ui-visible) .input-section,
-body:not(.ui-visible) .player-section,
-body:not(.ui-visible) .playlist-section {
-    opacity: 0;
-    pointer-events: none;
-}
+/* Zero-Gravity UI Styles have been removed */
 
 /* Recording Indicator Styles */
 .recording-indicator {
@@ -1060,4 +1046,20 @@ body:not(.ui-visible) .playlist-section {
     color: var(--text-secondary);
     font-size: 1.5rem;
     cursor: pointer;
+}
+
+/* Hover-and-hide UI Styles */
+.player-section .track-info,
+.player-section .progress-container,
+.player-section .control-btn:not(.play-btn) {
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.player-section.controls-visible .track-info,
+.player-section.controls-visible .progress-container,
+.player-section.controls-visible .control-btn:not(.play-btn) {
+    opacity: 1;
+    pointer-events: auto;
 }

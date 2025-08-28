@@ -19,6 +19,7 @@ class MusicPlayer {
         // 音频上下文和可视化器
         this.audioContext = null;
         this.visualizer = null;
+        this.hideControlsTimeout = null;
 
         this.initializeAudioContext();
         this.setupEventListeners();
@@ -103,6 +104,41 @@ class MusicPlayer {
         document.getElementById('togglePlaylistBtn').addEventListener('click', () => {
             playlistSection.classList.toggle('visible');
         });
+
+        // Touch-friendly UI toggle
+        const playerSection = document.querySelector('.player-section');
+        const appContainer = document.querySelector('.app-container');
+
+        const showControls = () => {
+            playerSection.classList.add('controls-visible');
+            clearTimeout(this.hideControlsTimeout);
+            this.hideControlsTimeout = setTimeout(() => {
+                playerSection.classList.remove('controls-visible');
+            }, 3000);
+        };
+
+        const toggleControls = () => {
+            if (playerSection.classList.contains('controls-visible')) {
+                playerSection.classList.remove('controls-visible');
+                clearTimeout(this.hideControlsTimeout);
+            } else {
+                showControls();
+            }
+        };
+
+        appContainer.addEventListener('click', (e) => {
+            // Only toggle if clicking the background, not the controls themselves
+            if (e.target === appContainer || e.target === this.visualizer.canvas) {
+                toggleControls();
+            }
+        });
+
+        // Keep controls visible while interacting with them
+        playerSection.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent container click from firing
+            showControls();
+        });
+        playerSection.addEventListener('mousemove', showControls); // For desktop
     }
 
     setupVisualizer() {
