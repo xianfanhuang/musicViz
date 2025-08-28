@@ -165,4 +165,14 @@ export default function MusicVisualizer() {
               <Expand className="w-4 h-4 mr-2" /> Fullscreen
             </Button>
             <Button variant="outline" size="sm" onClick={toggleColorScheme} className="bg-white/10 hover:bg-white/20 border-white/30 text-white" data-testid="button-colors">
-              <Palette className="w-4 h-4
+              <Palette className="w-4 h-4 mr-2" /> Colors
+            </Button>
+            <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 border-white/30 text-white" data-testid="button-settings">
+              <Settings className="w-4 h-4 mr-2" /> Settings
+            </Button>
+          </div>
+        </div>
+      </div>
+    </MobileWrapper>
+  );
+}
