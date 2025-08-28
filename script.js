@@ -37,119 +37,44 @@ class MusicPlayer {
     }
 
     setupEventListeners() {
-        // 文件上传
-        const fileInput = document.getElementById('fileInput');
-        const uploadArea = document.getElementById('uploadArea');
-
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
-        uploadArea.addEventListener('drop', this.handleDrop.bind(this));
-        fileInput.addEventListener('change', this.handleFileSelect.bind(this));
-
-        // 播放控制
+        // Main Player Controls
         document.getElementById('playBtn').addEventListener('click', this.togglePlay.bind(this));
         document.getElementById('prevBtn').addEventListener('click', this.previousTrack.bind(this));
         document.getElementById('nextBtn').addEventListener('click', this.nextTrack.bind(this));
-        document.getElementById('shuffleBtn').addEventListener('click', this.toggleShuffle.bind(this));
-        document.getElementById('repeatBtn').addEventListener('click', this.toggleRepeat.bind(this));
 
-        // 进度条
+        // Input Controls
+        const inputSection = document.querySelector('.input-section');
+        document.getElementById('addMusicBtn').addEventListener('click', () => {
+            inputSection.classList.toggle('visible');
+        });
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+        document.getElementById('sniffBtn').addEventListener('click', this.sniffURL.bind(this));
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sniffURL();
+        });
+
+        // Playlist Controls
+        const playlistSection = document.querySelector('.playlist-section');
+        document.getElementById('togglePlaylistBtn').addEventListener('click', () => {
+            playlistSection.classList.toggle('visible');
+        });
+        document.getElementById('playlist').addEventListener('click', this.handlePlaylistClick.bind(this));
+
+        // Other controls
         const progressBar = document.getElementById('progressBar');
         progressBar.addEventListener('click', this.seekTo.bind(this));
 
-        // 音量控制
-        const volumeSlider = document.getElementById('volumeSlider');
-        const muteBtn = document.getElementById('muteBtn');
-        volumeSlider.addEventListener('input', this.setVolume.bind(this));
-        muteBtn.addEventListener('click', this.toggleMute.bind(this));
-
-        // 可视化控制
-        document.getElementById('colorTheme').addEventListener('change', this.changeColorTheme.bind(this));
-
-        // URL探嗅
-        document.getElementById('sniffBtn').addEventListener('click', this.sniffURL.bind(this));
-        document.getElementById('urlInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sniffURL();
-            }
-        });
-
-        // 音频元素事件
+        // Audio Element Events
         this.audioElement.addEventListener('loadedmetadata', this.onLoadedMetadata.bind(this));
         this.audioElement.addEventListener('timeupdate', this.onTimeUpdate.bind(this));
         this.audioElement.addEventListener('ended', this.onTrackEnded.bind(this));
         this.audioElement.addEventListener('play', this.onPlay.bind(this));
         this.audioElement.addEventListener('pause', this.onPause.bind(this));
-
-        // 播放列表管理
-        document.getElementById('clearPlaylistBtn').addEventListener('click', this.clearPlaylist.bind(this));
-        document.getElementById('playlist').addEventListener('click', this.handlePlaylistClick.bind(this));
-
-        // Immersive Mode
-        document.getElementById('immersiveBtn').addEventListener('click', this.toggleImmersiveMode.bind(this));
-
-        // Video Export
-        document.getElementById('exportVideoBtn').addEventListener('click', this.exportVideo.bind(this));
-
-        // New Layout Interactions
-        const inputModal = document.getElementById('inputModal');
-        document.getElementById('addMusicBtn').addEventListener('click', () => {
-            inputModal.classList.add('visible');
-        });
-        document.getElementById('closeInputModalBtn').addEventListener('click', () => {
-            inputModal.classList.remove('visible');
-        });
-
-        const playlistSection = document.querySelector('.playlist-section');
-        document.getElementById('togglePlaylistBtn').addEventListener('click', () => {
-            playlistSection.classList.toggle('visible');
-        });
-
-        // Touch-friendly UI toggle
-        const playerSection = document.querySelector('.player-section');
-        const appContainer = document.querySelector('.app-container');
-        let controlsHidden = false;
-
-        const startHideTimer = () => {
-            clearTimeout(this.hideControlsTimeout);
-            this.hideControlsTimeout = setTimeout(() => {
-                playerSection.classList.add('controls-hidden');
-                controlsHidden = true;
-            }, 3000);
-        };
-
-        const showControlsAndResetTimer = () => {
-            playerSection.classList.remove('controls-hidden');
-            controlsHidden = false;
-            startHideTimer();
-        };
-
-        // Toggle on background click
-        appContainer.addEventListener('click', (e) => {
-            if (e.target === appContainer || e.target.id === 'visualizerCanvas') {
-                playerSection.classList.toggle('controls-hidden');
-                controlsHidden = !controlsHidden;
-                if (!controlsHidden) {
-                    startHideTimer();
-                } else {
-                    clearTimeout(this.hideControlsTimeout);
-                }
-            }
-        });
-
-        // Reset timer on interaction with controls
-        playerSection.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showControlsAndResetTimer();
-        });
-        playerSection.addEventListener('mousemove', showControlsAndResetTimer);
-
-        // Start timer when music starts playing
-        this.audioElement.addEventListener('play', () => {
-            if (!this.hideControlsTimeout) { // Only start on first play
-                startHideTimer();
-            }
-        });
     }
 
     setupVisualizer() {
@@ -788,7 +713,15 @@ class MusicPlayer {
 
     updatePlayButton() {
         const playBtn = document.getElementById('playBtn');
-        playBtn.textContent = this.isPlaying ? '⏸' : '▶';
+        const playIcon = playBtn.querySelector('.play-icon');
+        const pauseIcon = playBtn.querySelector('.pause-icon');
+        if (this.isPlaying) {
+            playIcon.style.display = 'none';
+            pauseIcon.style.display = 'inline-block';
+        } else {
+            playIcon.style.display = 'inline-block';
+            pauseIcon.style.display = 'none';
+        }
     }
 
     formatTime(seconds) {
