@@ -2,7 +2,7 @@
 name: Deploy One Branch
 on:
   push:
-    branches: [ one ]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
@@ -26,5 +26,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./client/dist
-          publish_branch: gh-pages-one
+          publish_branch: one
           cname: ''
