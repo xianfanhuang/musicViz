@@ -18,9 +18,9 @@ class ThreeVisualizer {
         this.beatDecayRate = 0.97;
 
         this.colorPalettes = {
-            energetic: [new THREE.Color(0xff0000), new THREE.Color(0xffff00), new THREE.Color(0xffa500)],
-            calm: [new THREE.Color(0x0000ff), new THREE.Color(0x00ffff), new THREE.Color(0x87ceeb)],
-            mellow: [new THREE.Color(0x800080), new THREE.Color(0xffc0cb), new THREE.Color(0xee82ee)],
+            energetic: [new THREE.Color(0xff4444), new THREE.Color(0xffff88), new THREE.Color(0xffa500)],
+            calm: [new THREE.Color(0x4444ff), new THREE.Color(0x88ffff), new THREE.Color(0x87ceeb)],
+            mellow: [new THREE.Color(0xaa00aa), new THREE.Color(0xffc0cb), new THREE.Color(0xee82ee)],
         };
         this.currentColor = new THREE.Color(0x8899ff);
 
@@ -56,10 +56,10 @@ class ThreeVisualizer {
 
         const material = new THREE.PointsMaterial({
             color: 0x8899ff,
-            size: 1.5,
-            blending: THREE.AdditiveBlending,
+            size: 2.5,
+            blending: THREE.NormalBlending,
             transparent: true,
-            opacity: 0.9
+            opacity: 1.0
         });
 
         this.particleSystem = new THREE.Points(this.particles, material);
@@ -89,11 +89,11 @@ class ThreeVisualizer {
                 uniform float u_time;
                 varying vec2 vUv;
                 void main() {
-                    vec3 color = vec3(vUv.x, vUv.y, 1.0);
+                    vec3 color = 0.5 + 0.5 * cos(u_time + vUv.xyx + vec3(0,2,4));
                     gl_FragColor = vec4(color, 1.0);
                 }
             `,
-            wireframe: true,
+            wireframe: false,
         });
 
         this.oceanicPlane = new THREE.Mesh(geometry, material);
