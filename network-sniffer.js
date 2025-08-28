@@ -704,5 +704,12 @@ class NetworkAudioSniffer {
     }
 }
 
-// 导出网络探嗅器实例
-window.networkSniffer = new NetworkAudioSniffer();
+// Comment out or remove the original global instance creation
+// window.networkSniffer = new NetworkAudioSniffer();
+
+// Export the class for use in other modules (like server.js)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NetworkAudioSniffer;
+} else {
+    window.networkSniffer = new NetworkAudioSniffer();
+}

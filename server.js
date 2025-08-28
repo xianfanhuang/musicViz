@@ -1,14 +1,17 @@
 // server.js
 const http = require('http');
 const sniffHandler = require('./api/sniff.js');
+const NetworkAudioSniffer = require('./network-sniffer.js');
+
+const sniffer = new NetworkAudioSniffer();
 
 const server = http.createServer((req, res) => {
     // We need to simulate the Vercel/req.query behavior for our handler
     const url = new URL(req.url, `http://${req.headers.host}`);
     req.query = Object.fromEntries(url.searchParams);
 
-    // Call the handler
-    sniffHandler(req, res);
+    // Call the handler with the sniffer instance
+    sniffHandler(req, res, sniffer);
 });
 
 const PORT = process.env.PORT || 3000;

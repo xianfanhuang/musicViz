@@ -86,6 +86,9 @@ class MusicPlayer {
 
         // Immersive Mode
         document.getElementById('immersiveBtn').addEventListener('click', this.toggleImmersiveMode.bind(this));
+
+        // Video Export
+        document.getElementById('exportVideoBtn').addEventListener('click', this.exportVideo.bind(this));
     }
 
     setupVisualizer() {
@@ -486,6 +489,39 @@ class MusicPlayer {
                 this.visualizer.resizeCanvas();
             }
         }, 500); // 500ms matches the CSS transition duration
+    }
+
+    exportVideo() {
+        if (!this.visualizer || !this.visualizer.canvas) {
+            this.showNotification('可视化工具未准备好', 'error');
+            return;
+        }
+
+        this.showNotification('开始录制 8 秒视频...', 'info');
+
+        const canvas = this.visualizer.canvas;
+        const stream = canvas.captureStream(30); // 30 fps
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `musicviz-export-${Date.now()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.showNotification('视频导出成功!', 'success');
+        };
+
+        recorder.start();
+        setTimeout(() => {
+            recorder.stop();
+        }, 8000); // Record for 8 seconds
     }
 
     async togglePlay() {
