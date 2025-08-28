@@ -108,37 +108,48 @@ class MusicPlayer {
         // Touch-friendly UI toggle
         const playerSection = document.querySelector('.player-section');
         const appContainer = document.querySelector('.app-container');
+        let controlsHidden = false;
 
-        const showControls = () => {
-            playerSection.classList.add('controls-visible');
+        const startHideTimer = () => {
             clearTimeout(this.hideControlsTimeout);
             this.hideControlsTimeout = setTimeout(() => {
-                playerSection.classList.remove('controls-visible');
+                playerSection.classList.add('controls-hidden');
+                controlsHidden = true;
             }, 3000);
         };
 
-        const toggleControls = () => {
-            if (playerSection.classList.contains('controls-visible')) {
-                playerSection.classList.remove('controls-visible');
-                clearTimeout(this.hideControlsTimeout);
-            } else {
-                showControls();
-            }
+        const showControlsAndResetTimer = () => {
+            playerSection.classList.remove('controls-hidden');
+            controlsHidden = false;
+            startHideTimer();
         };
 
+        // Toggle on background click
         appContainer.addEventListener('click', (e) => {
-            // Only toggle if clicking the background, not the controls themselves
-            if (e.target === appContainer || e.target === this.visualizer.canvas) {
-                toggleControls();
+            if (e.target === appContainer || e.target.id === 'visualizerCanvas') {
+                playerSection.classList.toggle('controls-hidden');
+                controlsHidden = !controlsHidden;
+                if (!controlsHidden) {
+                    startHideTimer();
+                } else {
+                    clearTimeout(this.hideControlsTimeout);
+                }
             }
         });
 
-        // Keep controls visible while interacting with them
+        // Reset timer on interaction with controls
         playerSection.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent container click from firing
-            showControls();
+            e.stopPropagation();
+            showControlsAndResetTimer();
         });
-        playerSection.addEventListener('mousemove', showControls); // For desktop
+        playerSection.addEventListener('mousemove', showControlsAndResetTimer);
+
+        // Start timer when music starts playing
+        this.audioElement.addEventListener('play', () => {
+            if (!this.hideControlsTimeout) { // Only start on first play
+                startHideTimer();
+            }
+        });
     }
 
     setupVisualizer() {

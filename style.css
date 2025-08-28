@@ -1048,18 +1048,16 @@ body.immersive-mode #visualizerCanvas {
     cursor: pointer;
 }
 
-/* Hover-and-hide UI Styles */
+/* Tap-to-hide UI Styles */
 .player-section .track-info,
 .player-section .progress-container,
-.player-section .control-btn:not(.play-btn) {
-    opacity: 0;
-    pointer-events: none;
+.player-section .control-btn {
     transition: all 0.4s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-.player-section.controls-visible .track-info,
-.player-section.controls-visible .progress-container,
-.player-section.controls-visible .control-btn:not(.play-btn) {
-    opacity: 1;
-    pointer-events: auto;
+.player-section.controls-hidden .track-info,
+.player-section.controls-hidden .progress-container,
+.player-section.controls-hidden .control-btn:not(.play-btn) {
+    opacity: 0;
+    pointer-events: none;
 }
