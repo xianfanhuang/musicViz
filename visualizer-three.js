@@ -1,6 +1,7 @@
 class ThreeVisualizer {
     constructor(canvas, audioContext) {
         try {
+            console.log("ThreeVisualizer: constructor called");
             this.canvas = canvas;
             this.audioContext = audioContext;
             this.analyser = null;
@@ -187,6 +188,7 @@ class ThreeVisualizer {
 
     connectAudio(audioElement) {
         if (this.analyser) return;
+        console.log("ThreeVisualizer: connectAudio called");
         const listener = new THREE.AudioListener();
         this.camera.add(listener);
         const audio = new THREE.Audio(listener);
@@ -226,6 +228,7 @@ class ThreeVisualizer {
     }
 
     animate() {
+        console.log("ThreeVisualizer: animate loop running");
         this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
 
         if (this.analyser) {
@@ -343,6 +346,7 @@ class ThreeVisualizer {
     }
     
     destroy() {
+        console.log("ThreeVisualizer: destroy called");
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
@@ -356,6 +360,7 @@ class ThreeVisualizer {
             }
         });
         this.renderer.dispose();
+        console.log("ThreeVisualizer: cleaned up resources.");
     }
 }
 
