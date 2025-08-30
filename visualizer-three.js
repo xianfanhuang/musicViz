@@ -1,7 +1,6 @@
 class ThreeVisualizer {
     constructor(canvas, audioContext) {
         try {
-            console.log("ThreeVisualizer: constructor called");
             this.canvas = canvas;
             this.audioContext = audioContext;
             this.analyser = null;
@@ -32,7 +31,7 @@ class ThreeVisualizer {
             this.createBackgroundLayer();
             this.createMidgroundLayer();
             this.createForegroundLayer();
-            this.createOceanicTheme(); // Keep this for theme switching
+            this.createOceanicTheme();
 
             this.resizeCanvas();
             window.addEventListener('resize', this.resizeCanvas.bind(this), false);
@@ -218,7 +217,6 @@ class ThreeVisualizer {
         const mids = bands.mids;
         const treble = bands.treble;
 
-        // More nuanced emotion detection based on frequency bands
         if (bass > 140 && treble > 80) return 'party';
         if (bass > 100 && mids > 50) return 'energetic';
         if (treble > 90 && mids < 40) return 'chill';
@@ -228,24 +226,20 @@ class ThreeVisualizer {
     }
 
     animate() {
-        console.log("ThreeVisualizer: animate loop running");
         this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
 
         if (this.analyser) {
             const data = this.analyser.getFrequencyData();
             const bands = this.getFrequencyBands(data);
 
-            // Update background
             this.backgroundSphere.material.uniforms.u_time.value = this.clock.elapsedTime;
             this.backgroundSphere.material.uniforms.u_bass.value = bands.bass / 255;
 
-            // Update oceanic theme uniforms
             if (this.oceanicPlane && this.oceanicPlane.visible) {
                 this.oceanicPlane.material.uniforms.u_time.value = this.clock.elapsedTime;
                 this.oceanicPlane.material.uniforms.u_frequency.value = bands.mids / 255;
             }
 
-            // Emotion-based color (only for particle system)
             if (this.particleSystem.visible && !this.manualTheme) {
                 const emotion = this.getEmotionFromAudio(bands);
                 const targetPalette = this.colorPalettes[emotion];
@@ -254,9 +248,8 @@ class ThreeVisualizer {
                 this.particleSystem.material.color.set(this.currentColor);
             }
 
-            // Simple beat detection
             const energy = bands.treble;
-            if (energy > this.beatCutOff && energy > 10) { // Min energy threshold
+            if (energy > this.beatCutOff && energy > 10) {
                 this.beatCutOff = energy * 1.1;
                 this.beatTime = 0;
             } else {
@@ -268,7 +261,6 @@ class ThreeVisualizer {
                 }
             }
 
-            // Mid-ground particle animation (torus)
             const midPositions = this.particleSystem.geometry.attributes.position.array;
             for (let i = 0; i < midPositions.length / 3; i++) {
                 const i3 = i * 3;
@@ -281,31 +273,27 @@ class ThreeVisualizer {
             this.particleSystem.geometry.attributes.position.needsUpdate = true;
             this.particleSystem.rotation.y += 0.001;
 
-
-            // Foreground sparks on treble beat
             const sparkPositions = this.sparkSystem.geometry.attributes.position.array;
             const sparkLifetimes = this.sparkSystem.geometry.attributes.lifetime.array;
 
-            if (this.beatTime < 10) { // It's a beat
+            if (this.beatTime < 10) {
                 for (let i = 0; i < sparkLifetimes.length; i++) {
                     if (sparkLifetimes[i] <= 0) {
-                        // Found an inactive spark, let's trigger it
-                        sparkLifetimes[i] = 60; // 60 frames lifetime
+                        sparkLifetimes[i] = 60;
                         const i3 = i * 3;
                         const velocity = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
                         sparkPositions[i3] = velocity.x;
                         sparkPositions[i3+1] = velocity.y;
                         sparkPositions[i3+2] = velocity.z;
-                        break; // Trigger one spark per beat
+                        break;
                     }
                 }
             }
 
-            // Update sparks
             for (let i = 0; i < sparkLifetimes.length; i++) {
                 if (sparkLifetimes[i] > 0) {
                     const i3 = i * 3;
-                    sparkPositions[i3] += 0.5; // Move them
+                    sparkPositions[i3] += 0.5;
                     sparkLifetimes[i]--;
                 }
             }
@@ -313,7 +301,6 @@ class ThreeVisualizer {
             this.sparkSystem.geometry.attributes.lifetime.needsUpdate = true;
         }
 
-        // Camera rotation
         const time = this.clock.elapsedTime;
         this.camera.position.x = Math.sin(time * 0.1) * 100;
         this.camera.position.z = Math.cos(time * 0.1) * 100;
@@ -324,7 +311,7 @@ class ThreeVisualizer {
     }
 
     setColorTheme(theme) {
-        this.manualTheme = true; // Disable automatic color by default
+        this.manualTheme = true;
         this.particleSystem.visible = true;
         this.oceanicPlane.visible = false;
 
@@ -333,7 +320,7 @@ class ThreeVisualizer {
             case 'oceanic_flow':
                 this.particleSystem.visible = false;
                 this.oceanicPlane.visible = true;
-                this.manualTheme = true; // No auto color for this theme yet
+                this.manualTheme = true;
                 break;
             case 'fire':
                 color = 0xff8866;
@@ -346,8 +333,8 @@ class ThreeVisualizer {
                 break;
             case 'aurora':
             default:
-                this.manualTheme = false; // Re-enable automatic colors for default
-                color = this.currentColor.getHex(); // Keep current color
+                this.manualTheme = false;
+                color = this.currentColor.getHex();
         }
 
         if (color) {
@@ -356,30 +343,19 @@ class ThreeVisualizer {
     }
     
     destroy() {
-        console.log("ThreeVisualizer: destroy called");
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
-
         this.scene.traverse(object => {
             if (object.isMesh) {
-                if (object.geometry) {
-                    object.geometry.dispose();
-                }
+                if (object.geometry) object.geometry.dispose();
                 if (object.material) {
-                    if (object.material.isMaterial) {
-                        object.material.dispose();
-                    } else {
-                        for (const material of object.material) {
-                            material.dispose();
-                        }
-                    }
+                    if (object.material.isMaterial) object.material.dispose();
+                    else for (const material of object.material) material.dispose();
                 }
             }
         });
-        
         this.renderer.dispose();
-        console.log("ThreeVisualizer: cleaned up resources.");
     }
 }
 
