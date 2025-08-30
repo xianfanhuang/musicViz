@@ -152,6 +152,12 @@ body {
     transition: color 0.3s ease, transform 0.2s ease;
 }
 
+.control-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
 .control-btn:hover {
     color: var(--primary-color);
 }
@@ -163,6 +169,11 @@ body {
 .play-btn {
     font-size: 2.5rem;
     color: var(--primary-color);
+}
+
+.play-btn svg {
+    width: 38px;
+    height: 38px;
 }
 
 .volume-control {
@@ -278,10 +289,8 @@ body {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.upload-area i {
-    font-size: 3rem;
-    color: var(--secondary-color);
-    margin-bottom: 15px;
+.upload-area p {
+    margin-top: 15px;
 }
 
 .url-input-container {
@@ -294,10 +303,9 @@ body {
     flex-grow: 1;
     background: rgba(0,0,0,0.3);
     border: 1px solid var(--glass-border);
-    color: var(--text-primary);
+    color: var(--primary-color);
     padding: 12px;
     border-radius: 10px;
-    color: var(--primary-color);
 }
 
 .sniff-btn {
@@ -326,3 +334,25 @@ body {
         max-width: 100%;
     }
 }
+
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.notification {
+    background-color: #2196F3;
+    color: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: all 0.3s;
+}
+
+.notification.success { background-color: #4CAF50; }
+.notification.error { background-color: #f44336; }
+.notification.info { background-color: #2196F3; }
