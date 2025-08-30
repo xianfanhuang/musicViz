@@ -1,3 +1,5 @@
+//Here is the code for script.js:
+
 class MusicPlayer {
     constructor() {
         this.audioElement = document.getElementById('audioPlayer');
