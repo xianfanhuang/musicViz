@@ -1,0 +1,84 @@
+/* style.css */
+body {
+    user-select: none;
+}
+
+#ui-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1;
+}
+
+#ui-controls.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#play-button {
+    width: 60px;
+    height: 60px;
+    border: 2px solid white;
+    background-color: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+#play-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.play-icon {
+    width: 0;
+    height: 0;
+    border-top: 15px solid transparent;
+    border-bottom: 15px solid transparent;
+    border-left: 20px solid white;
+    margin-left: 5px;
+}
+
+.pause-icon {
+    width: 15px;
+    height: 30px;
+    border-right: 7px solid white;
+    border-left: 7px solid white;
+}
+
+#progress-container {
+    width: 300px;
+    height: 5px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#progress-bar {
+    height: 100%;
+    background-color: white;
+    width: 0;
+    border-radius: 5px;
+}
+
+#file-input-label {
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+#file-input {
+    display: none;
+}
