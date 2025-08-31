@@ -14,6 +14,13 @@ body {
     gap: 10px;
     transition: opacity 0.5s ease-in-out;
     opacity: 1;
+    
+    /* 新增磨砂玻璃效果 */
+    background-color: rgba(255, 255, 255, 0.15); /* 半透明背景 */
+    backdrop-filter: blur(10px); /* 模糊背景 */
+    -webkit-backdrop-filter: blur(10px); /* 兼容 Safari */
+    border-radius: 10px;
+    padding: 20px;
 }
 
 #ui-controls.hidden {
@@ -70,7 +77,7 @@ body {
     border-radius: 5px;
 }
 
-#file-input-label {
+#file-input-label, #url-input-label, .theme-button, #color-picker-label {
     color: white;
     font-family: sans-serif;
     text-align: center;
@@ -81,4 +88,46 @@ body {
 
 #file-input {
     display: none;
+}
+
+#url-input-container {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+#url-input {
+  background-color: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-family: sans-serif;
+}
+
+#url-button, .theme-button {
+  background-color: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+#color-picker {
+  background: none;
+  border: none;
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+}
+
+#color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+#color-picker::-webkit-color-swatch {
+  border: 1px solid white;
+  border-radius: 50%;
 }
