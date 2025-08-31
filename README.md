@@ -12,9 +12,10 @@ Sonoria 是一款独特的音乐可视化应用，它将您的音频转化为富
  * 前端：HTML, CSS, JavaScript
  * 核心：p5.js (图形渲染) & Web Audio API (音频处理)
 
-版权声明 (Copyright & License)
-Copyright © 2025 [huangxianfan/元觉]. All rights reserved.
+### Copyright and License
 
-本项目的源代码在 MIT 协议下发布，您可以在遵守协议条款的前提下自由使用、修改和分发。详情请见 LICENSE 文件。
+Copyright © 2025 [Your Name/Company Name]. All rights reserved.
 
-“Sonoria | 音境”是 [元觉智能科技有限公司] 的商标。未经许可，不得使用。
+The source code for this project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+"Sonoria | 音境" is a trademark of [Your Name/Company Name]. All rights reserved.
