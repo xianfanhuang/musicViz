@@ -26,7 +26,7 @@ let audioData = {
 let particles = [];
 const MAX_PARTICLES = 500;
 
-// 新增：全局可视化主题管理器
+// 全局可视化主题管理器
 const visualizations = {
     'particles': null,
     'bars': null,
@@ -67,7 +67,6 @@ function setup() {
     colorMode(HSL, 360, 100, 100, 1);
     noLoop();
 
-    // 初始设置当前可视化器
     currentVisualizer = visualizations[currentTheme];
 }
 
@@ -114,7 +113,6 @@ function draw() {
         pulseFactor = lerp(pulseFactor, 0.5, 0.05);
     }
     
-    // 动态调用当前的可视化函数
     if (currentVisualizer) {
         currentVisualizer();
     }
@@ -126,11 +124,10 @@ function draw() {
 // 交互与音频控制
 // ----------------------------------------
 function toggleAudioPlayback() {
-    if (!audioCtx) {
-        const audio = new Audio('https://ia800300.us.archive.org/11/items/SilentNight_663/Silent_Night.mp3');
-        initAudio(audio);
+    if (!audioCtx || !currentAudio) {
+        return;
     }
-    
+
     if (audioCtx.state === 'running') {
         audioCtx.suspend().then(() => {
             isPlaying = false;
@@ -148,6 +145,9 @@ function toggleAudioPlayback() {
 }
 
 function initAudio(audioElement) {
+    if (audioCtx) {
+        audioCtx.close();
+    }
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
@@ -157,43 +157,26 @@ function initAudio(audioElement) {
     currentAudio = audioElement;
     currentAudio.crossOrigin = 'anonymous';
     currentAudio.loop = true;
-    currentAudio.play();
 
     audioSource = audioCtx.createMediaElementSource(currentAudio);
     audioSource.connect(analyser);
     analyser.connect(audioCtx.destination);
+    
+    currentAudio.play();
+    isPlaying = true;
+    playIcon.style.display = 'none';
+    pauseIcon.style.display = 'block';
 }
 
-function hexToHsl(hex) {
-    let r = parseInt(hex.slice(1, 3), 16) / 255;
-    let g = parseInt(hex.slice(3, 5), 16) / 255;
-    let b = parseInt(hex.slice(5, 7), 16) / 255;
-
-    let max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-
-    if (max === min) {
-        h = s = 0;
-    } else {
-        let d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-    }
-    return [h * 360, s * 100, l * 100];
+function loadAudio(audioSrc) {
+  const newAudio = new Audio(audioSrc);
+  newAudio.addEventListener('canplaythrough', () => {
+    initAudio(newAudio);
+  });
+  newAudio.addEventListener('error', (e) => {
+    console.error('音频加载失败:', e);
+  });
 }
-
-function updateBaseColor(hexColor) {
-    baseColor = hexToHsl(hexColor);
-}
-
-playButton.addEventListener('click', () => {
-    toggleAudioPlayback();
-});
 
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -210,21 +193,9 @@ urlButton.addEventListener('click', () => {
     }
 });
 
-function loadAudio(audioSrc) {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-    const newAudio = new Audio(audioSrc);
-    if (audioCtx) {
-        audioCtx.close().then(() => {
-            initAudio(newAudio);
-        });
-    } else {
-        initAudio(newAudio);
-    }
+playButton.addEventListener('click', () => {
     toggleAudioPlayback();
-}
+});
 
 themeButton.addEventListener('click', () => {
     const themes = ['particles', 'bars', 'vortex'];
