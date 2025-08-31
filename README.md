@@ -17,4 +17,4 @@ Copyright © 2025 [huangxianfan/元觉]. All rights reserved.
 
 本项目的源代码在 MIT 协议下发布，您可以在遵守协议条款的前提下自由使用、修改和分发。详情请见 LICENSE 文件。
 
-“Sonoria | 音境”是 [元觉公司] 的商标。未经许可，不得使用。
+“Sonoria | 音境”是 [元觉智能科技有限公司] 的商标。未经许可，不得使用。
