@@ -36,6 +36,11 @@ const uiControls = document.getElementById('ui-controls');
 const themeButton = document.getElementById('theme-button');
 const colorPicker = document.getElementById('color-picker');
 
+// 新增 UI 元素
+const urlInput = document.getElementById('url-input');
+const urlButton = document.getElementById('url-button');
+
+
 // ----------------------------------------
 // p5.js 核心函数
 // ----------------------------------------
@@ -47,7 +52,6 @@ function setup() {
 }
 
 function draw() {
-  // 检查静默状态
   if (!isPlaying && millis() - lastActiveTime > 5000) {
     isIdle = true;
     uiControls.classList.add('hidden');
@@ -95,9 +99,6 @@ function draw() {
   requestAnimationFrame(draw);
 }
 
-// ----------------------------------------
-// 可视化主题函数
-// ----------------------------------------
 function drawParticles() {
   background(0, 0, 0, 0.1); 
   
@@ -126,9 +127,6 @@ function drawBars() {
   }
 }
 
-// ----------------------------------------
-// 粒子类定义
-// ----------------------------------------
 class Particle {
   constructor(x, y) {
     this.pos = createVector(x, y);
@@ -232,22 +230,32 @@ fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const fileURL = URL.createObjectURL(file);
-        if (currentAudio) {
-            currentAudio.pause();
-            currentAudio = null;
-            URL.revokeObjectURL(fileURL);
-        }
-        const newAudio = new Audio(fileURL);
-        if (audioCtx) {
-            audioCtx.close().then(() => {
-              initAudio(newAudio);
-            });
-        } else {
-          initAudio(newAudio);
-        }
-        toggleAudioPlayback();
+        loadAudio(fileURL);
     }
 });
+
+urlButton.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (url) {
+        loadAudio(url);
+    }
+});
+
+function loadAudio(audioSrc) {
+  if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+  }
+  const newAudio = new Audio(audioSrc);
+  if (audioCtx) {
+      audioCtx.close().then(() => {
+        initAudio(newAudio);
+      });
+  } else {
+    initAudio(newAudio);
+  }
+  toggleAudioPlayback();
+}
 
 themeButton.addEventListener('click', () => {
     if (currentTheme === 'particles') {
