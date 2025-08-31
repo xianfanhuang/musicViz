@@ -1,5 +1,5 @@
 Sonoria | 音境
-> 动人心绚，乐音之境，Your sound, reimagined.
+> 动人心绚，乐音之境-Your sound, reimagined.
 Sonoria 是一款独特的音乐可视化应用，它将您的音频转化为富有生命力的动态艺术。受“声音的境界”（音境）理念启发，应用旨在提供一个**随音乐“呼吸”**的沉浸式音乐情感科视觉体验。
 
 主要特性 (Key Features)
