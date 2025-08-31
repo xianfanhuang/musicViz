@@ -14,8 +14,8 @@ Sonoria 是一款独特的音乐可视化应用，它将您的音频转化为富
 
 ### Copyright and License
 
-Copyright © 2025 [Your Name/Company Name]. All rights reserved.
+Copyright © 2025 [huangxianfan/元觉智能]. All rights reserved.
 
-The source code for this project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+The source code for this project is released under the MIT License. See the [MIT](LICENSE) file for details.
 
-"Sonoria | 音境" is a trademark of [Your Name/Company Name]. All rights reserved.
+"Sonoria | 音境" is a trademark of [Yuan Jue Intelligent Technology Co., Ltd.]. All rights reserved.
