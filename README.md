@@ -4,6 +4,7 @@ Sonoria 是一款独特的音乐可视化应用，它将您的音频转化为富
 主要特性 (Key Features)
  * 动态可视化：提供粒子、音频柱和三维漩涡三种主题，每种主题都精心设计，能够深度解析音频的节奏和频率。
  * 多源音频输入：支持本地文件上传和网络音频 URL 播放。
+
 技术栈 (Technologies)
  * 前端：HTML, CSS, JavaScript
  * 核心：p5.js (图形渲染) & Web Audio API (音频处理)
