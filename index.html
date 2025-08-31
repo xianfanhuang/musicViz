@@ -105,5 +105,126 @@
       resizeCanvas(windowWidth, windowHeight);
     }
   </script>
+  <script>
+  let isPlaying = false;
+  let isIdle = true;
+  let lastActiveTime = 0;
+  
+  // 新增：Web Audio API 相关变量
+  let audioCtx;
+  let audioSource;
+  let analyser;
+  let bufferLength;
+  let dataArray;
+  
+  // 用于存储音频数据以供可视化
+  let audioData = { bpm: 120, energy: 0.5 };
+
+  // --- p5.js核心代码 ---
+  function setup() {
+    createCanvas(windowWidth, windowHeight);
+  }
+  
+  function draw() {
+    // 检查静默状态
+    if (!isPlaying && millis() - lastActiveTime > 5000) {
+      isIdle = true;
+    }
+
+    background(0);
+    translate(width / 2, height / 2);
+
+    let scaleFactor = 1;
+    let alpha = 150;
+    let colorHue;
+
+    if (isPlaying) {
+      // 从分析器获取实时数据
+      analyser.getByteFrequencyData(dataArray);
+
+      // 实时计算能量（RMS）
+      let sumOfSquares = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sumOfSquares += dataArray[i] * dataArray[i];
+      }
+      let energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
+      
+      // 模拟BPM，用低频能量峰值来表示
+      let bassEnergy = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
+      let bpm = map(bassEnergy, 0, 1, 60, 180);
+
+      // 将实时数据传递给可视化逻辑
+      audioData.energy = energy;
+      audioData.bpm = bpm;
+
+      // 播放状态：根据BPM和能量律动
+      let pulseSpeed = 60 / audioData.bpm;
+      scaleFactor = 1 + audioData.energy * 0.2 * abs(sin(millis() / 1000 * PI / pulseSpeed));
+      colorHue = map(audioData.energy, 0, 1, 200, 360);
+    } else if (isIdle) {
+      let breatheSpeed = 0.0003;
+      scaleFactor = 1 + 0.05 * abs(sin(millis() * breatheSpeed));
+      alpha = 50 + 50 * abs(sin(millis() * breatheSpeed));
+      colorHue = 200;
+    } else {
+      scaleFactor = 1;
+      alpha = 100;
+      colorHue = 220;
+    }
+
+    // 绘制核心图形
+    noFill();
+    strokeWeight(5);
+    stroke(colorHue, 100, 100, alpha); // HSL颜色模式
+
+    let numCircles = 15;
+    for (let i = 0; i < numCircles; i++) {
+      let currentScale = scaleFactor * (1 + i * 0.05);
+      circle(0, 0, 100 * currentScale * (1 - i / numCircles));
+    }
+  }
+
+  // --- 交互与音频控制 ---
+  function touchStarted() {
+    if (!audioCtx) {
+      // 首次点击，初始化音频上下文并加载音乐
+      initAudio();
+    }
+    
+    if (isPlaying) {
+      audioSource.stop();
+    } else {
+      audioSource.start();
+    }
+    
+    lastActiveTime = millis();
+    isPlaying = !isPlaying;
+    return false;
+  }
+
+  // 初始化音频管道
+  function initAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    
+    analyser.fftSize = 256;
+    bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+    
+    // 加载一个公共域的音乐文件
+    const audio = new Audio('https://ia800300.us.archive.org/11/items/SilentNight_663/Silent_Night.mp3');
+    audio.crossOrigin = 'anonymous'; // 解决跨域问题
+    audioSource = audioCtx.createMediaElementSource(audio);
+    
+    // 连接管道：音频 -> 分析器 -> 扬声器
+    audioSource.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+
+  function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+  }
+</script>
+
 </body>
 </html>
