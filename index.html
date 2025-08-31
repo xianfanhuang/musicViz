@@ -17,7 +17,14 @@
           <div id="icon-play" class="play-icon"></div>
           <div id="icon-pause" class="pause-icon" style="display: none;"></div>
       </button>
-      <label id="file-input-label" for="file-input">加载本地音乐</label>
+      <label id="file-input-label" <label id="url-input-label" for="url-input">或输入网络直链</label>
+<div id="url-input-container">
+    <input type="text" id="url-input" placeholder="粘贴音频直链...">
+    <button id="url-button">加载</button>
+</div>
+
+        
+for="file-input">加载本地音乐</label>
       <input type="file" id="file-input" accept="audio/*">
       
       <button id="theme-button" class="theme-button">切换主题</button>
