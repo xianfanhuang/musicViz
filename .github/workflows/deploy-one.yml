@@ -1,7 +1,7 @@
 name: Deploy to Pages Branch 'one'
 on:
   push:
-    branches: [main]
+    branches: [m]
   workflow_dispatch:
 
 permissions:
@@ -33,5 +33,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./client/dist
-          publish_branch: one
+          publish_branch: 
           force_orphan: true
