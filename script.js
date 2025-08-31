@@ -1,453 +1,302 @@
-//Here is the code for script.js:
-
+// 模块化重构：使用类封装播放器核心功能
 class MusicPlayer {
-    constructor() {
-        this.audioElement = document.getElementById('audioPlayer');
-        this.playlist = [];
-        this.currentTrackIndex = 0;
-        this.isPlaying = false;
-        this.volume = 0.8;
-
-        this.audioContext = null;
-        this.visualizer = null;
-
-        // New UI Elements
-        this.albumArt = document.getElementById('albumArt');
-        this.playlistContainer = document.querySelector('.playlist-container');
-        this.uploadModal = document.querySelector('.upload-modal');
-        this.volumeIconPaths = {
-            up: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
-            down: "M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z",
-            mute: "M7 9v6h4l5 5V4L11 9H7z"
-        };
-
-        this.initializeAudioContext();
-        this.setupEventListeners();
-        this.setupVisualizer();
-        this.updateUI();
-        this.loadState();
+  constructor() {
+    // 初始化核心属性
+    this.audioContext = null;
+    this.analyser = null;
+    this.source = null;
+    this.dataArray = null;
+    this.isVisualizing = false;
+    this.isPlaying = false;
+    this.playlist = [];
+    this.currentTrackIndex = -1;
+    
+    // DOM元素缓存
+    this.elements = {
+      audio: document.getElementById('audio-player'),
+      playBtn: document.getElementById('play-btn'),
+      pauseBtn: document.getElementById('pause-btn'),
+      nextBtn: document.getElementById('next-btn'),
+      prevBtn: document.getElementById('prev-btn'),
+      progressBar: document.getElementById('progress-bar'),
+      volumeControl: document.getElementById('volume-control'),
+      fileInput: document.getElementById('file-input'),
+      urlInput: document.getElementById('url-input'),
+      errorContainer: document.getElementById('error-container')
+    };
+    
+    // 初始化
+    this.init();
+  }
+  
+  // 初始化播放器
+  async init() {
+    try {
+      // 初始化音频上下文（延迟到用户交互时）
+      this.setupEventListeners();
+      this.initVisualizer();
+      console.log('播放器初始化完成');
+    } catch (error) {
+      this.showError(`初始化失败: ${error.message}`);
+      console.error('初始化错误:', error);
     }
-
-    async initializeAudioContext() {
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            document.body.addEventListener('click', () => {
-                if (this.audioContext.state === 'suspended') {
-                    this.audioContext.resume();
-                }
-            }, { once: true });
-        } catch (error) {
-            console.warn('Could not create AudioContext:', error);
-        }
+  }
+  
+  // 初始化可视化器
+  initVisualizer() {
+    if (window.initThreeVisualizer) {
+      window.initThreeVisualizer();
+    } else {
+      console.warn('Three.js可视化模块未加载');
     }
-
-    setupEventListeners() {
-        // Player Controls
-        document.getElementById('playBtn').addEventListener('click', this.togglePlay.bind(this));
-        document.getElementById('prevBtn').addEventListener('click', this.previousTrack.bind(this));
-        document.getElementById('nextBtn').addEventListener('click', this.nextTrack.bind(this));
-        document.getElementById('progressBar').addEventListener('click', this.seekTo.bind(this));
-
-        // Secondary Controls
-        document.getElementById('addMusicBtn').addEventListener('click', this.toggleUploadModal.bind(this));
-        document.getElementById('togglePlaylistBtn').addEventListener('click', this.togglePlaylist.bind(this));
-        document.getElementById('muteBtn').addEventListener('click', this.toggleMute.bind(this));
-        document.getElementById('volumeSlider').addEventListener('input', this.setVolume.bind(this));
-
-        // Playlist
-        document.getElementById('closePlaylistBtn').addEventListener('click', this.togglePlaylist.bind(this));
-        document.getElementById('playlist').addEventListener('click', this.handlePlaylistClick.bind(this));
-
-        // Upload Modal
-        document.getElementById('closeUploadBtn').addEventListener('click', this.toggleUploadModal.bind(this));
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
-        uploadArea.addEventListener('dragleave', (e) => e.currentTarget.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', this.handleDrop.bind(this));
-        fileInput.addEventListener('change', this.handleFileSelect.bind(this));
-        document.getElementById('sniffBtn').addEventListener('click', this.sniffURL.bind(this));
-        document.getElementById('urlInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.sniffURL(); });
-
-        // Audio Element Events
-        this.audioElement.addEventListener('loadedmetadata', this.onLoadedMetadata.bind(this));
-        this.audioElement.addEventListener('timeupdate', this.onTimeUpdate.bind(this));
-        this.audioElement.addEventListener('ended', this.onTrackEnded.bind(this));
-        this.audioElement.addEventListener('play', this.onPlay.bind(this));
-        this.audioElement.addEventListener('pause', this.onPause.bind(this));
-
-        window.addEventListener('beforeunload', this.destroy.bind(this));
+  }
+  
+  // 设置事件监听器（集中管理）
+  setupEventListeners() {
+    // 播放控制
+    this.elements.playBtn.addEventListener('click', () => this.play());
+    this.elements.pauseBtn.addEventListener('click', () => this.pause());
+    this.elements.nextBtn.addEventListener('click', () => this.nextTrack());
+    this.elements.prevBtn.addEventListener('click', () => this.prevTrack());
+    
+    // 进度和音量控制
+    this.elements.progressBar.addEventListener('input', (e) => this.setProgress(e.target.value));
+    this.elements.volumeControl.addEventListener('input', (e) => this.setVolume(e.target.value));
+    
+    // 音频事件
+    this.elements.audio.addEventListener('timeupdate', () => this.updateProgress());
+    this.elements.audio.addEventListener('ended', () => this.nextTrack());
+    this.elements.audio.addEventListener('error', (e) => this.handleAudioError(e));
+    
+    // 文件和URL输入
+    this.elements.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+    document.getElementById('load-url-btn').addEventListener('click', () => this.loadUrlAudio());
+    
+    // 用户交互时初始化音频上下文（解决浏览器自动暂停问题）
+    document.addEventListener('click', () => this.ensureAudioContext(), { once: true });
+  }
+  
+  // 确保音频上下文已初始化并处于活动状态
+  async ensureAudioContext() {
+    if (!this.audioContext) {
+      try {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('音频上下文创建成功');
+      } catch (error) {
+        this.showError('无法创建音频上下文，请使用现代浏览器');
+        console.error('音频上下文错误:', error);
+      }
+    } else if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+      console.log('音频上下文已恢复');
+    }
+  }
+  
+  // 连接音频源到分析器
+  connectAudioSource() {
+    if (!this.audioContext || !this.elements.audio) return false;
+    
+    // 清理之前的连接
+    if (this.source) {
+      this.source.disconnect();
     }
     
-    destroy() {
-        if (this.visualizer) {
-            this.visualizer.destroy();
-        }
-    }
-
-    setupVisualizer() {
-        const canvas = document.getElementById('visualizerCanvas');
-        if (window.AudioVisualizer) {
-            this.visualizer = new window.AudioVisualizer(canvas, this.audioContext);
-            if (this.audioContext && this.audioElement) {
-                this.visualizer.connectAudio(this.audioElement);
-            }
-        } else {
-            console.error("AudioVisualizer is not available.");
-        }
-    }
-
-    togglePlaylist() {
-        this.playlistContainer.classList.toggle('visible');
-    }
-
-    toggleUploadModal() {
-        this.uploadModal.classList.toggle('visible');
-    }
-
-    handleDrop(e) {
-        e.preventDefault();
-        e.currentTarget.classList.remove('dragover');
-        this.processFiles(Array.from(e.dataTransfer.files));
-    }
-
-    handleFileSelect(e) {
-        this.processFiles(Array.from(e.target.files));
-    }
-
-    async processFiles(files) {
-        const audioFiles = files.filter(file =>
-            file.type.startsWith('audio/') ||
-            (window.audioDecoder && window.audioDecoder.detectFormat(file))
-        );
-
-        if (audioFiles.length === 0) {
-            this.showNotification('Please select valid audio files.', 'error');
-            return;
-        }
-
-        this.toggleUploadModal();
-
-        for (const file of audioFiles) {
-            try {
-                const result = await window.audioDecoder.decodeAudio(file);
-                const audioURL = URL.createObjectURL(result.audioData);
-
-                const track = {
-                    id: this.generateId(),
-                    url: audioURL,
-                    metadata: result.metadata,
-                    file: result.audioData,
-                    originalFormat: result.originalFormat,
-                    decodedFormat: result.decodedFormat
-                };
-                
-                if (!track.metadata.cover) {
-                    track.metadata.cover = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
-                }
-
-                this.playlist.push(track);
-                this.addToPlaylistUI(track, this.playlist.length - 1);
-
-            } catch (error) {
-                console.error('File processing failed:', error);
-                this.showNotification(`Failed to process ${file.name}: ${error.message}`, 'error');
-            }
-        }
-
-        if (this.playlist.length > 0 && !this.isPlaying) {
-            this.loadTrack(0);
-        }
-        this.saveState();
-        this.showNotification(`Added ${audioFiles.length} tracks.`, 'success');
-    }
-
-    async sniffURL() {
-        const urlInput = document.getElementById('urlInput');
-        const url = urlInput.value.trim();
-        if (!url) return;
-        this.showNotification('Sniffing URL...', 'info');
-        // This part would need the server to be working correctly.
-        // For now, we'll keep it as a placeholder.
-        this.showNotification('URL sniffing not yet fully implemented.', 'warning');
-        urlInput.value = '';
-        this.toggleUploadModal();
-    }
-
-    addToPlaylistUI(track, index) {
-        const playlistEl = document.getElementById('playlist');
-        const item = document.createElement('div');
-        item.className = 'playlist-item';
-        item.dataset.trackId = track.id;
-        item.innerHTML = `
-            <div class="track-details">
-                <div class="track-name">${track.metadata.title}</div>
-                <div class="track-artist">${track.metadata.artist}</div>
-            </div>
-            <button class="remove-track-btn" data-track-id="${track.id}">&times;</button>
-        `;
-        item.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-track-btn')) return;
-            const trackIndex = this.playlist.findIndex(t => t.id === track.id);
-            this.loadTrack(trackIndex);
-        });
-        playlistEl.appendChild(item);
-    }
-
-    async loadTrack(index) {
-        if (index < 0 || index >= this.playlist.length) return;
-        this.currentTrackIndex = index;
-        const track = this.playlist[index];
-        this.audioElement.src = track.url;
-        this.updateTrackInfo(track.metadata);
-        this.updatePlaylistUI();
-        this.saveState();
-        if (this.isPlaying) {
-            this.audioElement.play();
-        }
-    }
-
-    updateTrackInfo(metadata) {
-        document.getElementById('trackTitle').textContent = metadata.title || 'Unknown Title';
-        document.getElementById('trackArtist').textContent = metadata.artist || 'Unknown Artist';
-        this.albumArt.src = metadata.cover || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
-    }
-
-    updatePlaylistUI() {
-        const items = document.querySelectorAll('.playlist-item');
-        items.forEach((item, i) => {
-            if (i === this.currentTrackIndex) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-    }
-
-    rerenderPlaylistUI() {
-        const playlistContainer = document.getElementById('playlist');
-        playlistContainer.innerHTML = '';
-        this.playlist.forEach((track, index) => this.addToPlaylistUI(track, index));
-        this.updatePlaylistUI();
-    }
+    // 创建新的音频源和分析器
+    this.source = this.audioContext.createMediaElementSource(this.elements.audio);
+    this.analyser = this.audioContext.createAnalyser();
     
-    handlePlaylistClick(e) {
-        if (e.target.classList.contains('remove-track-btn')) {
-            e.stopPropagation();
-            const trackId = e.target.dataset.trackId;
-            this.removeTrack(trackId);
-        }
-    }
-
-    removeTrack(trackId) {
-        const index = this.playlist.findIndex(t => t.id === trackId);
-        if (index > -1) {
-            this.playlist.splice(index, 1);
-            this.rerenderPlaylistUI();
-            if (index === this.currentTrackIndex) {
-                if (this.playlist.length === 0) {
-                    this.clearPlaylist();
-                } else {
-                    this.currentTrackIndex = Math.max(0, index - 1);
-                    this.loadTrack(this.currentTrackIndex);
-                }
-            }
-            this.saveState();
-        }
-    }
-
-    clearPlaylist() {
-        this.playlist = [];
-        this.audioElement.src = '';
-        this.isPlaying = false;
-        this.updateUI();
-        this.rerenderPlaylistUI();
-        this.updateTrackInfo({ title: 'Select a song', artist: '' });
-        this.saveState();
-    }
-
-    saveState() {
-        const state = {
-            playlist: this.playlist.filter(t => !t.url.startsWith('blob:')),
-            currentTrackIndex: this.currentTrackIndex,
-            volume: this.audioElement.volume
-        };
-        localStorage.setItem('musicPlayerState', JSON.stringify(state));
-    }
-
-    loadState() {
-        const savedState = localStorage.getItem('musicPlayerState');
-        if (savedState) {
-            try {
-                const state = JSON.parse(savedState);
-                this.playlist = state.playlist || [];
-                this.audioElement.volume = state.volume || 0.8;
-                
-                if (document.getElementById('volumeSlider')) {
-                    document.getElementById('volumeSlider').value = (state.volume || 0.8) * 100;
-                }
-                
-                this.updateVolumeIcon();
-
-                if (this.playlist.length > 0) {
-                    this.currentTrackIndex = state.currentTrackIndex || 0;
-                    this.rerenderPlaylistUI();
-                    const track = this.playlist[this.currentTrackIndex];
-                    if(track) {
-                        this.updateTrackInfo(track.metadata);
-                        this.audioElement.src = track.url;
-                    }
-                }
-            } catch(e) {
-                console.error("Failed to parse saved state:", e);
-                localStorage.removeItem('musicPlayerState');
-            }
-        }
-    }
-
-    async togglePlay() {
-        if (!this.audioElement.src && this.playlist.length > 0) {
-            await this.loadTrack(0);
-        }
-        
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
-        }
-
-        if (this.isPlaying) {
-            this.audioElement.pause();
-        } else {
-            this.audioElement.play();
-        }
-    }
-
-    previousTrack() {
-        if (this.playlist.length === 0) return;
-        const newIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
-        this.loadTrack(newIndex);
-    }
-
-    nextTrack() {
-        if (this.playlist.length === 0) return;
-        const newIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-        this.loadTrack(newIndex);
-    }
-
-    seekTo(e) {
-        if (!this.audioElement.duration) return;
-        const progressBar = document.getElementById('progressBar');
-        const rect = progressBar.getBoundingClientRect();
-        const percentage = (e.clientX - rect.left) / rect.width;
-        this.audioElement.currentTime = percentage * this.audioElement.duration;
-    }
-
-    setVolume(e) {
-        this.volume = e.target.value / 100;
-        this.audioElement.volume = this.volume;
-        this.updateVolumeIcon();
-        this.saveState();
-    }
-
-    toggleMute() {
-        if (this.audioElement.volume > 0) {
-            this.lastVolume = this.audioElement.volume;
-            this.audioElement.volume = 0;
-        } else {
-            this.audioElement.volume = this.lastVolume || this.volume;
-        }
-        document.getElementById('volumeSlider').value = this.audioElement.volume * 100;
-        this.updateVolumeIcon();
-    }
-
-    updateVolumeIcon() {
-        const volumeIcon = document.querySelector('#muteBtn .volume-icon path');
-        if (!volumeIcon) return;
-
-        const volume = this.audioElement.volume;
-        if (volume === 0) {
-            volumeIcon.setAttribute('d', this.volumeIconPaths.mute);
-        } else if (volume < 0.5) {
-            volumeIcon.setAttribute('d', this.volumeIconPaths.down);
-        } else {
-            volumeIcon.setAttribute('d', this.volumeIconPaths.up);
-        }
-    }
-
-    onLoadedMetadata() { this.updateUI(); }
-    onTimeUpdate() { this.updateProgress(); }
-    onTrackEnded() { this.nextTrack(); }
-
-    onPlay() {
+    // 配置分析器
+    this.analyser.fftSize = 256;
+    const bufferLength = this.analyser.frequencyBinCount;
+    this.dataArray = new Uint8Array(bufferLength);
+    
+    // 建立正确的连接链
+    this.source.connect(this.analyser);
+    this.analyser.connect(this.audioContext.destination);
+    
+    return true;
+  }
+  
+  // 播放功能
+  async play() {
+    try {
+      await this.ensureAudioContext();
+      
+      if (!this.elements.audio.src && this.playlist.length > 0) {
+        this.loadTrack(0);
+      }
+      
+      if (this.connectAudioSource()) {
+        await this.elements.audio.play();
         this.isPlaying = true;
-        this.updatePlayButton();
-        this.albumArt.classList.add('playing');
-        if (this.visualizer) this.visualizer.start();
+        this.startVisualization();
+      }
+    } catch (error) {
+      this.showError(`播放失败: ${error.message}`);
+      console.error('播放错误:', error);
     }
-
-    onPause() {
-        this.isPlaying = false;
-        this.updatePlayButton();
-        this.albumArt.classList.remove('playing');
-        if (this.visualizer) this.visualizer.stop();
+  }
+  
+  // 暂停功能
+  pause() {
+    this.elements.audio.pause();
+    this.isPlaying = false;
+    this.stopVisualization();
+  }
+  
+  // 启动可视化
+  startVisualization() {
+    if (!this.isVisualizing && this.analyser && window.updateVisualizer) {
+      this.isVisualizing = true;
+      this.renderVisualization();
     }
-
-    updateUI() {
-        this.updateProgress();
-        this.updatePlayButton();
-        this.updateVolumeIcon();
+  }
+  
+  // 可视化渲染循环（使用requestAnimationFrame优化性能）
+  renderVisualization() {
+    if (!this.isVisualizing || !this.analyser) {
+      this.isVisualizing = false;
+      return;
     }
-
-    updateProgress() {
-        if (!this.audioElement.duration) return;
-        const percentage = (this.audioElement.currentTime / this.audioElement.duration) * 100;
-        document.getElementById('progressFill').style.width = `${percentage}%`;
-        document.getElementById('currentTime').textContent = this.formatTime(this.audioElement.currentTime);
-        document.getElementById('totalTime').textContent = this.formatTime(this.audioElement.duration);
+    
+    // 获取音频数据
+    this.analyser.getByteFrequencyData(this.dataArray);
+    
+    // 传递数据给可视化器
+    window.updateVisualizer(this.dataArray);
+    
+    // 继续循环
+    requestAnimationFrame(() => this.renderVisualization());
+  }
+  
+  // 停止可视化
+  stopVisualization() {
+    this.isVisualizing = false;
+  }
+  
+  // 其他方法（播放列表管理、进度控制等）
+  loadTrack(index) {
+    if (index < 0 || index >= this.playlist.length) return false;
+    
+    this.currentTrackIndex = index;
+    const track = this.playlist[index];
+    this.elements.audio.src = track.url;
+    this.elements.audio.title = track.title;
+    document.title = `正在播放: ${track.title}`;
+    return true;
+  }
+  
+  nextTrack() {
+    const nextIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+    this.loadTrack(nextIndex) && this.play();
+  }
+  
+  prevTrack() {
+    const prevIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
+    this.loadTrack(prevIndex) && this.play();
+  }
+  
+  // 错误处理和UI反馈
+  showError(message) {
+    this.elements.errorContainer.textContent = message;
+    this.elements.errorContainer.classList.remove('hidden');
+    
+    // 3秒后自动隐藏错误信息
+    setTimeout(() => {
+      this.elements.errorContainer.classList.add('hidden');
+    }, 3000);
+  }
+  
+  handleAudioError(event) {
+    const errorMessages = {
+      1: '获取资源时发生错误',
+      2: '网络错误',
+      3: '解码错误',
+      4: '不支持的音频格式',
+      5: '播放中断'
+    };
+    
+    const message = errorMessages[event.target.error.code] || '未知音频错误';
+    this.showError(`播放错误: ${message}`);
+    this.stopVisualization();
+  }
+  
+  // 其他辅助方法...
+  updateProgress() {
+    const percent = (this.elements.audio.currentTime / this.elements.audio.duration) * 100;
+    this.elements.progressBar.value = percent || 0;
+  }
+  
+  setProgress(percent) {
+    const time = (percent / 100) * this.elements.audio.duration;
+    this.elements.audio.currentTime = time;
+  }
+  
+  setVolume(value) {
+    this.elements.audio.volume = value / 100;
+  }
+  
+  async handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      const url = URL.createObjectURL(file);
+      this.playlist.push({
+        title: file.name,
+        url: url,
+        type: 'local'
+      });
+      
+      // 自动播放新添加的文件
+      this.loadTrack(this.playlist.length - 1);
+      this.play();
+      
+      // 重置输入
+      this.elements.fileInput.value = '';
+    } catch (error) {
+      this.showError(`文件处理错误: ${error.message}`);
     }
-
-    updatePlayButton() {
-        const playIcon = document.querySelector('.play-icon');
-        const pauseIcon = document.querySelector('.pause-icon');
-        if (this.isPlaying) {
-            playIcon.style.display = 'none';
-            pauseIcon.style.display = 'block';
-        } else {
-            playIcon.style.display = 'block';
-            pauseIcon.style.display = 'none';
-        }
+  }
+  
+  async loadUrlAudio() {
+    const url = this.elements.urlInput.value.trim();
+    if (!url) {
+      this.showError('请输入有效的音频URL');
+      return;
     }
-
-    formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
-        const minutes = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
-
-    showNotification(message, type = 'info') {
-        let container = document.getElementById('notification-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'notification-container';
-            document.body.appendChild(container);
-        }
-        const notif = document.createElement('div');
-        notif.className = `notification ${type}`;
-        notif.textContent = message;
+    
+    try {
+      // 检查URL有效性
+      new URL(url);
+      
+      // 通过API代理获取音频（避免跨域）
+      const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      if (!response.ok) throw new Error('无法获取音频资源');
+      
+      const data = await response.json();
+      if (data.audioUrl) {
+        this.playlist.push({
+          title: new URL(url).hostname,
+          url: data.audioUrl,
+          type: 'remote'
+        });
         
-        container.appendChild(notif);
-
-        setTimeout(() => { notif.style.opacity = '1'; }, 10);
-        setTimeout(() => {
-            notif.style.opacity = '0';
-            setTimeout(() => notif.remove(), 300);
-        }, 3000);
+        this.loadTrack(this.playlist.length - 1);
+        this.play();
+        this.elements.urlInput.value = '';
+      } else {
+        throw new Error('无法解析音频URL');
+      }
+    } catch (error) {
+      this.showError(`URL加载错误: ${error.message}`);
+      console.error('URL处理错误:', error);
     }
+  }
 }
 
+// 页面加载完成后初始化播放器
 document.addEventListener('DOMContentLoaded', () => {
-    new MusicPlayer();
+  window.musicPlayer = new MusicPlayer();
 });
+    
