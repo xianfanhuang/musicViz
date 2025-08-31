@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>可视化音乐应用</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+      touch-action: none; /* 禁用触摸默认行为，让p5.js更好地控制 */
+    }
+    canvas {
+      display: block;
+    }
+    #info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      font-family: sans-serif;
+      font-size: 1.2em;
+      opacity: 0.5;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+</head>
+<body>
+  <div id="info">点击屏幕开始律动</div>
+  <script>
+    let isPlaying = false;
+    let isIdle = true;
+    let audioData = { bpm: 120, energy: 0.5 };
+    let lastActiveTime = 0;
+    
+    // p5.js的核心代码
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+    }
+    
+    function draw() {
+      // 检查静默状态
+      if (!isPlaying && millis() - lastActiveTime > 5000) {
+        isIdle = true;
+      }
+
+      background(0);
+      translate(width / 2, height / 2);
+
+      let scaleFactor = 1;
+      let alpha = 150;
+      let colorHue;
+
+      if (isPlaying) {
+        // 播放状态：根据BPM和能量律动
+        isIdle = false;
+        let pulseSpeed = 60 / audioData.bpm;
+        scaleFactor = 1 + audioData.energy * 0.2 * abs(sin(millis() / 1000 * PI / pulseSpeed));
+        colorHue = map(audioData.energy, 0, 1, 200, 360);
+      } else if (isIdle) {
+        // 静默状态：缓慢呼吸
+        let breatheSpeed = 0.0003;
+        scaleFactor = 1 + 0.05 * abs(sin(millis() * breatheSpeed));
+        alpha = 50 + 50 * abs(sin(millis() * breatheSpeed));
+        colorHue = 200;
+      } else {
+        // 暂停状态：柔和呼吸
+        scaleFactor = 1;
+        alpha = 100;
+        colorHue = 220;
+      }
+
+      noFill();
+      strokeWeight(5);
+      stroke(colorHue, 100, 100, alpha); // HSL颜色模式
+
+      // 绘制核心图形
+      let numCircles = 15;
+      for (let i = 0; i < numCircles; i++) {
+        let currentScale = scaleFactor * (1 + i * 0.05);
+        circle(0, 0, 100 * currentScale * (1 - i / numCircles));
+      }
+    }
+    
+    // 模拟点击事件，切换播放状态并更新数据
+    function touchStarted() {
+      lastActiveTime = millis();
+      isIdle = false;
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        // 模拟随机音乐数据
+        audioData = {
+          bpm: 60 + random(100),
+          energy: random(0.5, 1)
+        };
+      }
+      // 阻止默认行为
+      return false;
+    }
+    
+    // 窗口大小改变时重置画布大小
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
