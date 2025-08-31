@@ -1,165 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>可视化音乐应用</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* style.css 内容请独立保存在 style.css 文件中 */
-    body {
-        user-select: none;
-    }
-
-    #ui-controls {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        transition: opacity 0.5s ease-in-out;
-        opacity: 1;
-    }
-
-    #ui-controls.hidden {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    #play-button {
-        width: 60px;
-        height: 60px;
-        border: 2px solid white;
-        background-color: transparent;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color 0.3s, transform 0.3s;
-    }
-
-    #play-button:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-        transform: scale(1.1);
-    }
-
-    .play-icon {
-        width: 0;
-        height: 0;
-        border-top: 15px solid transparent;
-        border-bottom: 15px solid transparent;
-        border-left: 20px solid white;
-        margin-left: 5px;
-    }
-
-    .pause-icon {
-        width: 15px;
-        height: 30px;
-        border-right: 7px solid white;
-        border-left: 7px solid white;
-    }
-
-    #progress-container {
-        width: 300px;
-        height: 5px;
-        background-color: rgba(255, 255, 255, 0.3);
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    #progress-bar {
-        height: 100%;
-        background-color: white;
-        width: 0;
-        border-radius: 5px;
-    }
-
-    #file-input-label, #url-input-label, .theme-button, #color-picker-label {
-        color: white;
-        font-family: sans-serif;
-        text-align: center;
-        font-size: 14px;
-        opacity: 0.8;
-        cursor: pointer;
-    }
-
-    #file-input {
-        display: none;
-    }
-
-    #url-input-container {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-    }
-    
-    #url-input {
-      background-color: transparent;
-      border: 1px solid white;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-family: sans-serif;
-    }
-    
-    #url-button, .theme-button {
-      background-color: transparent;
-      border: 1px solid white;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-family: sans-serif;
-    }
-
-    #color-picker {
-      background: none;
-      border: none;
-      width: 25px;
-      height: 25px;
-      cursor: pointer;
-    }
-    
-    #color-picker::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-
-    #color-picker::-webkit-color-swatch {
-      border: 1px solid white;
-      border-radius: 50%;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonoria | 音境</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="info">点击屏幕以开始</div>
-  
-  <div id="ui-controls">
-      <div id="progress-container">
-          <div id="progress-bar"></div>
-      </div>
-      <button id="play-button">
-          <div id="icon-play" class="play-icon"></div>
-          <div id="icon-pause" class="pause-icon" style="display: none;"></div>
-      </button>
-      <label id="file-input-label" for="file-input">加载本地音乐</label>
-      <input type="file" id="file-input" accept="audio/*">
-      
-      <label id="url-input-label" for="url-input">或输入网络直链</label>
-      <div id="url-input-container">
-          <input type="text" id="url-input" placeholder="粘贴音频直链...">
-          <button id="url-button">加载</button>
-      </div>
 
-      <button id="theme-button" class="theme-button">切换主题</button>
-      <label id="color-picker-label" for="color-picker">自定义颜色</label>
-      <input type="color" id="color-picker" value="#ffffff">
-  </div>
+    <div id="info">
+        <div id="app-name">Sonoria</div>
+        <div id="slogan-cn">极简旋律，绚丽之境。</div>
+        <div id="slogan-en">Your sound, reimagined.</div>
+    </div>
+    
+    <div id="ui-controls">
 
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-  <script src="script.js"></script>
+        <button id="play-button">
+            <span id="icon-play" class="play-icon"></span>
+            <span id="icon-pause" class="pause-icon" style="display:none;"></span>
+        </button>
+
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <label id="file-input-label" for="file-input">
+            上传文件
+            <input type="file" id="file-input" accept="audio/*">
+        </label>
+        
+        <div id="url-input-container">
+            <input type="text" id="url-input" placeholder="输入音频URL">
+            <button id="url-button">播放</button>
+        </div>
+
+        <button id="theme-button" class="theme-button">切换主题</button>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="visualizations/particles.js"></script>
+    <script src="visualizations/bars.js"></script>
+    <script src="visualizations/vortex.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
