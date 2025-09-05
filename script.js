@@ -63,10 +63,40 @@ const urlButton = document.getElementById('url-button');
 // p5.js 核心函数
 // ----------------------------------------
 function setup() {
-    createCanvas(windowWidth, windowHeight);
+    createCanvas(windowWidth, windowHeight, WEBGL);
     colorMode(HSL, 360, 100, 100, 1);
 
     currentVisualizer = visualizations[currentTheme];
+}
+
+function updateAudioData() {
+    if (isPlaying) {
+        analyser.getByteFrequencyData(dataArray);
+
+        let sumOfSquares = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            sumOfSquares += dataArray[i] * dataArray[i];
+        }
+        audioData.energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
+        
+        audioData.bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
+        audioData.mids = (dataArray[3] + dataArray[4] + dataArray[5] + dataArray[6]) / 4 / 255;
+        audioData.treble = (dataArray[7] + dataArray[8] + dataArray[9]) / 3 / 255;
+
+        audioData.bpm = map(audioData.bass, 0, 1, 60, 180);
+        
+        currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
+        let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
+        pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
+    } else {
+        // Smoothly transition values to 0 when not playing
+        audioData.energy = lerp(audioData.energy, 0, 0.05);
+        audioData.bass = lerp(audioData.bass, 0, 0.05);
+        audioData.mids = lerp(audioData.mids, 0, 0.05);
+        audioData.treble = lerp(audioData.treble, 0, 0.05);
+        currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
+        pulseFactor = lerp(pulseFactor, 0.5, 0.05);
+    }
 }
 
 function draw() {
@@ -78,39 +108,8 @@ function draw() {
         uiControls.classList.remove('hidden');
         infoElement.classList.add('hidden');
     }
-    
-    background(0, 0, 0, 1);
 
-    if (isPlaying) {
-        analyser.getByteFrequencyData(dataArray);
-
-        let sumOfSquares = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            sumOfSquares += dataArray[i] * dataArray[i];
-        }
-        let energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
-        
-        let bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
-        let mids = (dataArray[3] + dataArray[4] + dataArray[5] + dataArray[6]) / 4 / 255;
-        let treble = (dataArray[7] + dataArray[8] + dataArray[9]) / 3 / 255;
-
-        let bpm = map(bass, 0, 1, 60, 180);
-        
-        audioData.energy = energy;
-        audioData.bpm = bpm;
-        audioData.bass = bass;
-        audioData.mids = mids;
-        audioData.treble = treble;
-        
-        currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
-
-        let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
-        pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
-        
-    } else {
-        currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
-        pulseFactor = lerp(pulseFactor, 0.5, 0.05);
-    }
+    updateAudioData();
     
     if (currentVisualizer) {
         currentVisualizer();

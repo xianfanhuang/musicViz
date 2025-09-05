@@ -1,5 +1,9 @@
 // 可视化函数
 visualizations.bars = function() {
+    // Translate to top-left corner to simulate 2D canvas
+    push();
+    translate(-width / 2, -height / 2);
+
     background(0, 0, 0, 1);
     
     let barWidth = width / bufferLength;
@@ -9,4 +13,5 @@ visualizations.bars = function() {
         fill(baseColor[0], sat, baseColor[2]);
         rect(i * barWidth, height - barHeight, barWidth, barHeight);
     }
+    pop();
 }

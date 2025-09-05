@@ -1,0 +1,6 @@
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET /script.js HTTP/1.1" 200 -
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET /visualizations/bars.js HTTP/1.1" 200 -
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET /visualizations/particles.js HTTP/1.1" 200 -
+127.0.0.1 - - [05/Sep/2025 21:29:59] "GET /visualizations/vortex.js HTTP/1.1" 200 -
