@@ -65,7 +65,6 @@ const urlButton = document.getElementById('url-button');
 function setup() {
     createCanvas(windowWidth, windowHeight);
     colorMode(HSL, 360, 100, 100, 1);
-    noLoop();
 
     currentVisualizer = visualizations[currentTheme];
 }
@@ -116,8 +115,6 @@ function draw() {
     if (currentVisualizer) {
         currentVisualizer();
     }
-
-    requestAnimationFrame(draw);
 }
 
 // ----------------------------------------
