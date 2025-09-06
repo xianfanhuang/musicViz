@@ -1,42 +1,20 @@
-// 应用状态变量
-let isPlaying = false;
-let isIdle = true;
-let lastActiveTime = 0;
-const IDLE_TIMEOUT = 15000; // 15秒
+// 初始化核心组件
+const audioManager = new AudioManager();
+
+// P5.js 核心变量
+let currentVisualizer = null;
+let currentTheme = 'particles';
 let pulseFactor = 1;
 let currentVisualEnergy = 0;
 
-// Web Audio API 相关变量
-let audioCtx;
-let audioSource;
-let analyser;
-let bufferLength;
-let dataArray;
-let currentAudio;
-
-// 用于存储实时音频数据
-let audioData = { 
-  bpm: 120, 
-  energy: 0.5,
-  bass: 0.5,
-  mids: 0.5,
-  treble: 0.5
-};
-
-// 粒子系统相关变量
-let particles = [];
-const MAX_PARTICLES = 500;
-
-// 全局可视化主题管理器
+// 全局可视化主题管理器 (保持不变)
 const visualizations = {
     'particles': null,
     'bars': null,
     'vortex': null
 };
-let currentTheme = 'particles';
-let currentVisualizer = null;
 
-// 预设色彩主题列表
+// 预设色彩主题列表 (保持不变)
 const colorThemes = [
     [0, 100, 100], 
     [60, 100, 100],
@@ -47,7 +25,7 @@ const colorThemes = [
 let currentThemeIndex = 0;
 let baseColor = colorThemes[currentThemeIndex];
 
-// --- UI 元素 ---
+// UI 元素
 const playButton = document.getElementById('play-button');
 const playIcon = document.getElementById('icon-play');
 const pauseIcon = document.getElementById('icon-pause');
@@ -59,6 +37,9 @@ const urlInput = document.getElementById('url-input');
 const urlButton = document.getElementById('url-button');
 const loadingOverlay = document.getElementById('loading-overlay');
 
+// UI 状态控制
+let lastActiveTime = 0;
+const IDLE_TIMEOUT = 15000;
 
 // ----------------------------------------
 // p5.js 核心函数
@@ -67,17 +48,16 @@ function setup() {
     createCanvas(windowWidth, windowHeight);
     colorMode(HSL, 360, 100, 100, 1);
     noLoop();
-
     currentVisualizer = visualizations[currentTheme];
-    // 应用启动时，让info元素淡入
+
     setTimeout(() => {
         infoElement.style.opacity = 1;
     }, 100);
 }
 
 function draw() {
-    if (!isPlaying && millis() - lastActiveTime > IDLE_TIMEOUT) {
-        isIdle = true;
+    // UI 隐藏逻辑
+    if (!audioManager.isPlaying && millis() - lastActiveTime > IDLE_TIMEOUT) {
         uiControls.classList.add('hidden');
         infoElement.classList.remove('hidden');
     } else {
@@ -86,123 +66,49 @@ function draw() {
     }
     
     background(0, 0, 0, 1);
+    
+    // 更新音频数据
+    const audioData = audioManager.getAudioData();
 
-    if (isPlaying) {
-        analyser.getByteFrequencyData(dataArray);
-
-        let sumOfSquares = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            sumOfSquares += dataArray[i] * dataArray[i];
-        }
-        let energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
-        
-        let bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
-        let mids = (dataArray[3] + dataArray[4] + dataArray[5] + dataArray[6]) / 4 / 255;
-        let treble = (dataArray[7] + dataArray[8] + dataArray[9]) / 3 / 255;
-
-        let bpm = map(bass, 0, 1, 60, 180);
-        
-        audioData.energy = energy;
-        audioData.bpm = bpm;
-        audioData.bass = bass;
-        audioData.mids = mids;
-        audioData.treble = treble;
-        
+    if (audioManager.isPlaying) {
         currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
-
         let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
         pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
-        
     } else {
         currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
         pulseFactor = lerp(pulseFactor, 0.5, 0.05);
     }
     
     if (currentVisualizer) {
-        currentVisualizer();
+        currentVisualizer(audioData, audioManager.dataArray);
     }
 
     requestAnimationFrame(draw);
 }
 
 // ----------------------------------------
-// 交互与音频控制
+// UI 交互
 // ----------------------------------------
-function toggleAudioPlayback() {
-    if (!audioCtx || !currentAudio) {
-        return;
-    }
-
-    if (audioCtx.state === 'running') {
-        audioCtx.suspend().then(() => {
-            isPlaying = false;
-            playIcon.style.display = 'inline-block';
-            pauseIcon.style.display = 'none';
-        });
-    } else {
-        audioCtx.resume().then(() => {
-            isPlaying = true;
-            playIcon.style.display = 'none';
-            pauseIcon.style.display = 'inline-block';
-        });
-    }
-    lastActiveTime = millis();
-}
-
-function initAudio(audioElement) {
-    if (audioCtx) {
-        audioCtx.close();
-    }
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
-    
-    currentAudio = audioElement;
-    currentAudio.crossOrigin = 'anonymous';
-    currentAudio.loop = true;
-
-    audioSource = audioCtx.createMediaElementSource(currentAudio);
-    audioSource.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    
-    loadingOverlay.classList.add('hidden');
-    currentAudio.play();
-    isPlaying = true;
-    playIcon.style.display = 'none';
-    pauseIcon.style.display = 'inline-block';
-}
-
-function loadAudio(audioSrc) {
-  loadingOverlay.classList.remove('hidden');
-  const newAudio = new Audio(audioSrc);
-  newAudio.addEventListener('canplaythrough', () => {
-    initAudio(newAudio);
-  });
-  newAudio.addEventListener('error', (e) => {
-    loadingOverlay.classList.add('hidden');
-    console.error('音频加载失败:', e);
-  });
-}
+playButton.addEventListener('click', () => {
+    audioManager.togglePlayback();
+    playIcon.style.display = audioManager.isPlaying ? 'none' : 'inline-block';
+    pauseIcon.style.display = audioManager.isPlaying ? 'inline-block' : 'none';
+});
 
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-        const fileURL = URL.createObjectURL(file);
-        loadAudio(fileURL);
+        loadingOverlay.classList.remove('hidden');
+        audioManager.loadFromFile(file);
     }
 });
 
 urlButton.addEventListener('click', () => {
     const url = urlInput.value.trim();
     if (url) {
-        loadAudio(url);
+        loadingOverlay.classList.remove('hidden');
+        audioManager.loadFromURL(url);
     }
-});
-
-playButton.addEventListener('click', () => {
-    toggleAudioPlayback();
 });
 
 themeButton.addEventListener('click', () => {
@@ -219,7 +125,6 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
 
-// 监听鼠标和触摸事件以重置UI隐藏计时器
 window.addEventListener('mousemove', () => {
     lastActiveTime = millis();
 });
