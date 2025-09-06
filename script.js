@@ -2,6 +2,7 @@
 let isPlaying = false;
 let isIdle = true;
 let lastActiveTime = 0;
+const IDLE_TIMEOUT = 15000; // 15秒
 let pulseFactor = 1;
 let currentVisualEnergy = 0;
 
@@ -50,57 +51,32 @@ let baseColor = colorThemes[currentThemeIndex];
 const playButton = document.getElementById('play-button');
 const playIcon = document.getElementById('icon-play');
 const pauseIcon = document.getElementById('icon-pause');
-const progressBar = document.getElementById('progress-container');
 const fileInput = document.getElementById('file-input');
 const uiControls = document.getElementById('ui-controls');
 const themeButton = document.getElementById('theme-button');
 const infoElement = document.getElementById('info');
 const urlInput = document.getElementById('url-input');
 const urlButton = document.getElementById('url-button');
+const loadingOverlay = document.getElementById('loading-overlay');
 
 
 // ----------------------------------------
 // p5.js 核心函数
 // ----------------------------------------
 function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL);
+    createCanvas(windowWidth, windowHeight);
     colorMode(HSL, 360, 100, 100, 1);
+    noLoop();
 
     currentVisualizer = visualizations[currentTheme];
-}
-
-function updateAudioData() {
-    if (isPlaying) {
-        analyser.getByteFrequencyData(dataArray);
-
-        let sumOfSquares = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            sumOfSquares += dataArray[i] * dataArray[i];
-        }
-        audioData.energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
-        
-        audioData.bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
-        audioData.mids = (dataArray[3] + dataArray[4] + dataArray[5] + dataArray[6]) / 4 / 255;
-        audioData.treble = (dataArray[7] + dataArray[8] + dataArray[9]) / 3 / 255;
-
-        audioData.bpm = map(audioData.bass, 0, 1, 60, 180);
-        
-        currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
-        let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
-        pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
-    } else {
-        // Smoothly transition values to 0 when not playing
-        audioData.energy = lerp(audioData.energy, 0, 0.05);
-        audioData.bass = lerp(audioData.bass, 0, 0.05);
-        audioData.mids = lerp(audioData.mids, 0, 0.05);
-        audioData.treble = lerp(audioData.treble, 0, 0.05);
-        currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
-        pulseFactor = lerp(pulseFactor, 0.5, 0.05);
-    }
+    // 应用启动时，让info元素淡入
+    setTimeout(() => {
+        infoElement.style.opacity = 1;
+    }, 100);
 }
 
 function draw() {
-    if (!isPlaying && millis() - lastActiveTime > 5000) {
+    if (!isPlaying && millis() - lastActiveTime > IDLE_TIMEOUT) {
         isIdle = true;
         uiControls.classList.add('hidden');
         infoElement.classList.remove('hidden');
@@ -108,12 +84,45 @@ function draw() {
         uiControls.classList.remove('hidden');
         infoElement.classList.add('hidden');
     }
+    
+    background(0, 0, 0, 1);
 
-    updateAudioData();
+    if (isPlaying) {
+        analyser.getByteFrequencyData(dataArray);
+
+        let sumOfSquares = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            sumOfSquares += dataArray[i] * dataArray[i];
+        }
+        let energy = Math.sqrt(sumOfSquares / bufferLength) / 255;
+        
+        let bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3 / 255;
+        let mids = (dataArray[3] + dataArray[4] + dataArray[5] + dataArray[6]) / 4 / 255;
+        let treble = (dataArray[7] + dataArray[8] + dataArray[9]) / 3 / 255;
+
+        let bpm = map(bass, 0, 1, 60, 180);
+        
+        audioData.energy = energy;
+        audioData.bpm = bpm;
+        audioData.bass = bass;
+        audioData.mids = mids;
+        audioData.treble = treble;
+        
+        currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
+
+        let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
+        pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
+        
+    } else {
+        currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
+        pulseFactor = lerp(pulseFactor, 0.5, 0.05);
+    }
     
     if (currentVisualizer) {
         currentVisualizer();
     }
+
+    requestAnimationFrame(draw);
 }
 
 // ----------------------------------------
@@ -127,14 +136,14 @@ function toggleAudioPlayback() {
     if (audioCtx.state === 'running') {
         audioCtx.suspend().then(() => {
             isPlaying = false;
-            playIcon.style.display = 'block';
+            playIcon.style.display = 'inline-block';
             pauseIcon.style.display = 'none';
         });
     } else {
         audioCtx.resume().then(() => {
             isPlaying = true;
             playIcon.style.display = 'none';
-            pauseIcon.style.display = 'block';
+            pauseIcon.style.display = 'inline-block';
         });
     }
     lastActiveTime = millis();
@@ -158,18 +167,21 @@ function initAudio(audioElement) {
     audioSource.connect(analyser);
     analyser.connect(audioCtx.destination);
     
+    loadingOverlay.classList.add('hidden');
     currentAudio.play();
     isPlaying = true;
     playIcon.style.display = 'none';
-    pauseIcon.style.display = 'block';
+    pauseIcon.style.display = 'inline-block';
 }
 
 function loadAudio(audioSrc) {
+  loadingOverlay.classList.remove('hidden');
   const newAudio = new Audio(audioSrc);
   newAudio.addEventListener('canplaythrough', () => {
     initAudio(newAudio);
   });
   newAudio.addEventListener('error', (e) => {
+    loadingOverlay.classList.add('hidden');
     console.error('音频加载失败:', e);
   });
 }
@@ -206,3 +218,11 @@ themeButton.addEventListener('click', () => {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
+
+// 监听鼠标和触摸事件以重置UI隐藏计时器
+window.addEventListener('mousemove', () => {
+    lastActiveTime = millis();
+});
+window.addEventListener('touchstart', () => {
+    lastActiveTime = millis();
+});
