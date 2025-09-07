@@ -6,12 +6,15 @@
     <title>Sonoria | 音境</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="audio-decoder.js"></script>
+    <script src="https://unpkg.com/idb@7/build/umd.js"></script>
 </head>
 <body>
 
     <div id="info">
         <div id="app-name">Sonoria</div>
-        <div id="slogan-cn">动人心绚，乐音之境。</div>
+        <div id="slogan-cn">极简旋律，绚丽之境。</div>
         <div id="slogan-en">Your sound, reimagined.</div>
     </div>
     
@@ -25,7 +28,7 @@
             <div id="input-controls">
                 <label for="file-input" class="player-btn">
                     <i class="fas fa-file-upload"></i>
-                    <input type="file" id="file-input" accept=".mp3, .wav, .aac, .m4a, .mp4">
+                    <input type="file" id="file-input" accept="*">
                 </label>
                 <div id="url-input-container">
                     <input type="text" id="url-input" placeholder="输入音频URL">
@@ -49,6 +52,7 @@
     <script src="visualizations/particles.js"></script>
     <script src="visualizations/bars.js"></script>
     <script src="visualizations/vortex.js"></script>
+    <script src="meta-scraper.js"></script>
     <script src="audio-manager.js"></script>
     <script src="script.js"></script>
 </body>
