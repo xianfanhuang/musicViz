@@ -1,3 +1,9 @@
+// audio-manager.js
+// Updated audio manager with unified loader and metadata scraping.
+
+// Declare global variables for the new modules
+let metaScraper = null;
+
 class AudioManager {
     constructor() {
         this.audioCtx = null;
@@ -9,17 +15,20 @@ class AudioManager {
 
         this.isPlaying = false;
         
-        // 用于存储实时音频数据
         this.audioData = { 
-            bpm: 120, 
             energy: 0.5,
             bass: 0.5,
             mids: 0.5,
             treble: 0.5
         };
+
+        if (typeof MetaScraper !== 'undefined') {
+            metaScraper = new MetaScraper();
+        } else {
+            console.error('MetaScraper not found. Metadata features are disabled.');
+        }
     }
 
-    // 初始化 Web Audio API 上下文和分析器
     initContext() {
         if (this.audioCtx) {
             this.audioCtx.close();
@@ -31,86 +40,74 @@ class AudioManager {
         this.dataArray = new Uint8Array(this.bufferLength);
     }
     
-    // 从 URL 加载音频文件
-    loadFromURL(audioSrc) {
-        this.currentAudio = new Audio(audioSrc);
-        this.currentAudio.crossOrigin = 'anonymous';
-        this.currentAudio.loop = true;
+    // Unified entry point for loading audio from file or URL
+    async loadAudio(source) {
+        let file;
+        
+        document.dispatchEvent(new CustomEvent('ui:loading', { detail: '加载音频...' }));
+        
+        if (typeof source === 'string') {
+            const response = await fetch(source);
+            const blob = await response.blob();
+            file = new File([blob], source.split('/').pop() || 'audio', { type: blob.type });
+        } else {
+            file = source;
+        }
+        
+        // 使用 audio-decoder 进行解码，获取解密后的音频文件和元数据
+        const { audioData: decodedFile, metadata } = await window.audioDecoder.decodeAudio(file);
 
-        this.currentAudio.addEventListener('canplaythrough', () => {
-            this.initContext();
-            this.audioSource = this.audioCtx.createMediaElementSource(this.currentAudio);
-            this.audioSource.connect(this.analyser);
-            this.analyser.connect(this.audioCtx.destination);
-            
-            this.currentAudio.play();
-            this.isPlaying = true;
-        }, { once: true }); // 使用 once: true 确保事件只执行一次
+        document.dispatchEvent(new CustomEvent('ui:loading', { detail: '解析元数据...' }));
 
-        this.currentAudio.addEventListener('error', (e) => {
-            console.error('音频加载失败:', e);
-            this.isPlaying = false;
-        }, { once: true });
+        const buffer = await decodedFile.arrayBuffer();
+        
+        this.initContext();
+        
+        // 使用 Web Audio API 解码音频缓冲区并立即播放
+        const audioBuffer = await this.audioCtx.decodeAudioData(buffer);
+        const sourceNode = this.audioCtx.createBufferSource();
+        sourceNode.buffer = audioBuffer;
+        sourceNode.loop = true;
+        sourceNode.connect(this.analyser);
+        this.analyser.connect(this.audioCtx.destination);
+        sourceNode.start(0);
+        this.isPlaying = true;
+        
+        const enhancedMetadata = await metaScraper.fetchMetadata(
+            metadata.title,
+            metadata.artist,
+            audioBuffer.duration,
+            audioBuffer
+        );
+
+        document.dispatchEvent(new CustomEvent('ui:update-metadata', { detail: enhancedMetadata }));
+        document.dispatchEvent(new CustomEvent('ui:loaded'));
+        
+        return enhancedMetadata;
     }
 
-    // 从本地文件加载音频（更可靠的方式）
-    loadFromFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const audioDataBuffer = e.target.result;
-            this.initContext();
-            
-            this.audioCtx.decodeAudioData(audioDataBuffer, (buffer) => {
-                const audioSourceNode = this.audioCtx.createBufferSource();
-                audioSourceNode.buffer = buffer;
-                audioSourceNode.loop = true;
-
-                audioSourceNode.connect(this.analyser);
-                this.analyser.connect(this.audioCtx.destination);
-                
-                audioSourceNode.start();
-                this.isPlaying = true;
-                
-            }, (e) => {
-                console.error("音频解码失败:", e);
-                this.isPlaying = false;
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // 播放/暂停控制
     togglePlayback() {
         if (!this.audioCtx) return;
-
         if (this.audioCtx.state === 'running') {
             this.audioCtx.suspend().then(() => this.isPlaying = false);
-        } else if (this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume().then(() => this.isPlaying = true);
         } else {
-             // 对于本地文件，需要手动控制播放
-             if (this.currentAudio) {
-                 this.currentAudio.play().then(() => this.isPlaying = true);
-             }
+            this.audioCtx.resume().then(() => this.isPlaying = true);
         }
     }
 
-    // 获取实时音频数据，供 p5.js 使用
     getAudioData() {
-        if (!this.analyser) {
+        if (!this.analyser || !this.isPlaying) {
             return this.audioData;
         }
 
         this.analyser.getByteFrequencyData(this.dataArray);
         
-        // 计算能量
         let sumOfSquares = 0;
         for (let i = 0; i < this.bufferLength; i++) {
             sumOfSquares += this.dataArray[i] * this.dataArray[i];
         }
         let energy = Math.sqrt(sumOfSquares / this.bufferLength) / 255;
         
-        // 计算低、中、高频
         let bass = (this.dataArray[0] + this.dataArray[1] + this.dataArray[2]) / 3 / 255;
         let mids = (this.dataArray[3] + this.dataArray[4] + this.dataArray[5] + this.dataArray[6]) / 4 / 255;
         let treble = (this.dataArray[7] + this.dataArray[8] + this.dataArray[9]) / 3 / 255;
