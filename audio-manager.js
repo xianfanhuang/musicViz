@@ -119,7 +119,8 @@ class AudioManager {
 
         return this.audioData;
     }
-    // ① 文件是否真的进来了
+}
+   // ① 文件是否真的进来了
 console.log('[AM] 收到文件', file.name, file.size);
 
 // ② FileReader 是否读完
@@ -136,5 +137,3 @@ this.audioCtx.decodeAudioData(audioDataBuffer, (buffer) => {
   console.error('[AM] 解码失败', e);
   alert('解码失败：' + e.message);
 });
-
-}
