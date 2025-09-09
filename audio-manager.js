@@ -1,15 +1,12 @@
 // audio-manager.js
-// Updated audio manager with unified loader and metadata scraping.
+// Updated audio manager for more robust decoding and playback.
 
-// Declare global variables for the new modules
 let metaScraper = null;
 
 class AudioManager {
     constructor() {
         this.audioCtx = null;
-        this.audioSource = null;
         this.analyser = null;
-        this.currentAudio = null;
         this.bufferLength = 0;
         this.dataArray = null;
 
@@ -40,7 +37,6 @@ class AudioManager {
         this.dataArray = new Uint8Array(this.bufferLength);
     }
     
-    // Unified entry point for loading audio from file or URL
     async loadAudio(source) {
         let file;
         
@@ -54,17 +50,19 @@ class AudioManager {
             file = source;
         }
         
-        // 使用 audio-decoder 进行解码，获取解密后的音频文件和元数据
-        const { audioData: decodedFile, metadata } = await window.audioDecoder.decodeAudio(file);
+        // 核心步骤：使用 audio-decoder 解码文件，直接获取 Blob
+        const decodedBlob = await window.audioDecoder.decodeAudio(file);
+        
+        document.dispatchEvent(new CustomEvent('ui:loading', { detail: '正在解码...' }));
 
-        document.dispatchEvent(new CustomEvent('ui:loading', { detail: '解析元数据...' }));
-
-        const buffer = await decodedFile.arrayBuffer();
+        const buffer = await decodedBlob.arrayBuffer();
         
         this.initContext();
         
-        // 使用 Web Audio API 解码音频缓冲区并立即播放
+        // 使用 Web Audio API 解码音频缓冲区
         const audioBuffer = await this.audioCtx.decodeAudioData(buffer);
+        
+        // 创建并立即播放
         const sourceNode = this.audioCtx.createBufferSource();
         sourceNode.buffer = audioBuffer;
         sourceNode.loop = true;
@@ -73,17 +71,22 @@ class AudioManager {
         sourceNode.start(0);
         this.isPlaying = true;
         
-        const enhancedMetadata = await metaScraper.fetchMetadata(
-            metadata.title,
-            metadata.artist,
-            audioBuffer.duration,
-            audioBuffer
-        );
-
-        document.dispatchEvent(new CustomEvent('ui:update-metadata', { detail: enhancedMetadata }));
+        // 触发播放器状态更新
         document.dispatchEvent(new CustomEvent('ui:loaded'));
         
-        return enhancedMetadata;
+        // 在后台异步抓取元数据，不影响播放
+        if (metaScraper) {
+            document.dispatchEvent(new CustomEvent('ui:loading', { detail: '正在抓取元数据...' }));
+            const enhancedMetadata = await metaScraper.fetchMetadata(
+                file.name.replace(/\.[^/.]+$/, ""), // 从文件名提取标题
+                '未知艺术家',
+                audioBuffer.duration,
+                audioBuffer
+            );
+            document.dispatchEvent(new CustomEvent('ui:update-metadata', { detail: enhancedMetadata }));
+            // 元数据抓取完成后隐藏加载提示
+            document.dispatchEvent(new CustomEvent('ui:loaded'));
+        }
     }
 
     togglePlayback() {
@@ -99,24 +102,19 @@ class AudioManager {
         if (!this.analyser || !this.isPlaying) {
             return this.audioData;
         }
-
         this.analyser.getByteFrequencyData(this.dataArray);
-        
         let sumOfSquares = 0;
         for (let i = 0; i < this.bufferLength; i++) {
             sumOfSquares += this.dataArray[i] * this.dataArray[i];
         }
         let energy = Math.sqrt(sumOfSquares / this.bufferLength) / 255;
-        
         let bass = (this.dataArray[0] + this.dataArray[1] + this.dataArray[2]) / 3 / 255;
         let mids = (this.dataArray[3] + this.dataArray[4] + this.dataArray[5] + this.dataArray[6]) / 4 / 255;
         let treble = (this.dataArray[7] + this.dataArray[8] + this.dataArray[9]) / 3 / 255;
-
         this.audioData.energy = energy;
         this.audioData.bass = bass;
         this.audioData.mids = mids;
         this.audioData.treble = treble;
-
         return this.audioData;
     }
 }
