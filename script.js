@@ -178,7 +178,8 @@ function initAudio(audioElement) {
 
 function loadAudio(audioSrc) {
   const newAudio = new Audio(audioSrc);
-  newAudio.addEventListener('canplaythrough', () => {
+  // Use 'loadeddata' as it's more reliable for starting playback
+  newAudio.addEventListener('loadeddata', () => {
     initAudio(newAudio);
   });
   newAudio.addEventListener('error', (e) => {
