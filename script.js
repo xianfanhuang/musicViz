@@ -1,7 +1,7 @@
 // script.js
 // Main application logic, handles UI and orchestrates modules.
 
-const audioManager = new AudioManager();
+const audioManager = window.audioManager;
 
 let currentVisualizer = null;
 let currentTheme = 'particles';
@@ -39,9 +39,21 @@ const urlInput = document.getElementById('url-input');
 const urlButton = document.getElementById('url-button');
 const loadingOverlay = document.getElementById('loading-overlay');
 const dropZone = document.getElementById('drop-zone');
+const trackTitle = document.getElementById('track-title');
+const trackArtist = document.getElementById('track-artist');
+const currentTimeEl = document.getElementById('current-time');
+const totalTimeEl = document.getElementById('total-time');
+const progressBar = document.getElementById('progress-bar');
 
 let lastActiveTime = 0;
 const IDLE_TIMEOUT = 15000;
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+}
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -64,6 +76,18 @@ function draw() {
     }
     
     background(0, 0, 0, 1);
+
+    // Update player UI if audio is loaded
+    const duration = audioManager.getDuration();
+    if (duration > 0) {
+        const currentTime = audioManager.getCurrentTime();
+        // Prevent UI update if the user is currently dragging the progress bar
+        if (document.activeElement !== progressBar) {
+            progressBar.value = (currentTime / duration) * 100;
+        }
+        totalTimeEl.textContent = formatTime(duration);
+        currentTimeEl.textContent = formatTime(currentTime);
+    }
     
     const audioData = audioManager.getAudioData();
 
@@ -207,4 +231,21 @@ document.addEventListener('ui:loading', (e) => {
 
 document.addEventListener('ui:loaded', () => {
     loadingOverlay.classList.add('hidden');
+});
+
+progressBar.addEventListener('input', () => {
+    const duration = audioManager.getDuration();
+    if (duration > 0) {
+        const newTime = duration * (progressBar.value / 100);
+        audioManager.seek(newTime);
+        // Immediately update time display for better UX
+        currentTimeEl.textContent = formatTime(newTime);
+    }
+});
+
+document.addEventListener('ui:update-metadata', (e) => {
+    const meta = e.detail;
+    trackTitle.textContent = meta.title || '未知标题';
+    trackArtist.textContent = meta.artist || '未知艺术家';
+    totalTimeEl.textContent = formatTime(meta.duration || 0);
 });

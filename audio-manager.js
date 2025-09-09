@@ -10,7 +10,10 @@ class AudioManager {
     this.audioCtx   = null;
     this.analyser   = null;
     this.sourceNode = null;
+    this.audioBuffer = null; // Store the decoded buffer for seeking
     this.isPlaying  = false;
+    this.startTime = 0; // AudioContext's start time
+    this.startOffset = 0; // To track pause/seek position
     this.meta       = {};
     this.audioData  = { energy: 0.5, bass: 0.5, mids: 0.5, treble: 0.5 };
     // 可选：元数据抓取器
@@ -29,26 +32,30 @@ class AudioManager {
 
   /* --------- 统一入口 --------- */
   async loadAudio(source, { autoPlay = true } = {}) {
-    document.dispatchEvent(new CustomEvent('ui:loading', { detail: '加载音频...' }));
+    document.dispatchEvent(new CustomEvent('ui:loading', { detail: '解码音频...' }));
     try {
-      const file = await this._sourceToFile(source);
-      const { audioData: decodedFile, metadata: rawMeta } = await window.audioDecoder.decodeAudio(file);
-      const enhancedMeta = await this._enhanceMeta(decodedFile, rawMeta);
-
-      this.initContext();
-      const buffer    = await this.audioCtx.decodeAudioData(await decodedFile.arrayBuffer());
-      this.sourceNode = this.audioCtx.createBufferSource();
-      this.sourceNode.buffer = buffer;
-      this.sourceNode.loop   = true;
-      this.sourceNode.connect(this.analyser).connect(this.audioCtx.destination);
-      if (autoPlay) {
-        this.sourceNode.start(0);
-        this.isPlaying = true;
+      if (this.sourceNode) {
+        this.sourceNode.onended = null; // Prevent loop from firing on manual stop
+        this.sourceNode.stop();
       }
 
+      const file = await this._sourceToFile(source);
+      const { audioData: decodedFile, metadata: rawMeta } = await window.audioDecoder.decodeAudio(file);
+
+      this.initContext();
+      this.audioBuffer = await this.audioCtx.decodeAudioData(await decodedFile.arrayBuffer());
+
+      const enhancedMeta = await this._enhanceMeta(this.audioBuffer, rawMeta, decodedFile.name);
       this.meta = enhancedMeta;
       document.dispatchEvent(new CustomEvent('ui:update-metadata', { detail: enhancedMeta }));
-      document.dispatchEvent(new CustomEvent('ui:loaded'));
+
+      this.startOffset = 0;
+      this.isPlaying = false;
+      if (autoPlay) {
+        this.seek(0);
+      }
+
+      document.dispatchEvent(new Event('ui:loaded'));
       return enhancedMeta;
 
     } catch (err) {
@@ -69,24 +76,88 @@ class AudioManager {
     return new File([blob], source.split('/').pop() || 'remote-audio', { type: blob.type });
   }
 
-  async _enhanceMeta(decodedFile, rawMeta) {
+  async _enhanceMeta(audioBuffer, rawMeta, fileName) {
+    rawMeta.duration = audioBuffer.duration;
     if (rawMeta.title && rawMeta.title !== '未知艺术家') return rawMeta;
-    if (!this.metaScraper) return rawMeta;
-    const title = rawMeta.title || decodedFile.name;
+    if (!this.metaScraper) {
+        rawMeta.title = rawMeta.title || fileName;
+        return rawMeta
+    };
+    const title = rawMeta.title || fileName;
     const artist = rawMeta.artist || '';
     const duration = rawMeta.duration || 0;
-    const sample = await decodedFile.slice(0, 30 * 44100 * 2).arrayBuffer();
+    const sample = await audioBuffer.getChannelData(0).slice(0, 30 * 44100 * 2);
     return await this.metaScraper.fetchMeta(title, artist, duration, sample);
   }
 
   /* --------- 播放控制 --------- */
   togglePlayback() {
-    if (!this.audioCtx) return;
+    if (!this.audioCtx || !this.audioBuffer) return;
+
+    // If context is suspended, resume it. This handles play.
     if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume().then(() => this.isPlaying = true);
-    } else if (this.audioCtx.state === 'running') {
-      this.audioCtx.suspend().then(() => this.isPlaying = false);
+      this.audioCtx.resume().then(() => {
+        this.isPlaying = true;
+      });
     }
+    // If context is running, suspend it. This handles pause.
+    else if (this.audioCtx.state === 'running') {
+      this.audioCtx.suspend().then(() => {
+        this.isPlaying = false;
+        // Store exact time on pause
+        this.startOffset = this.audioCtx.currentTime - this.startTime;
+      });
+    }
+    // Handles playing for the first time after loading
+    else if (!this.isPlaying) {
+        this.seek(this.startOffset);
+    }
+  }
+
+  seek(timeInSeconds) {
+    if (!this.audioBuffer) return;
+
+    // If a source is already playing, stop it.
+    if (this.sourceNode) {
+        this.sourceNode.onended = null;
+        this.sourceNode.stop();
+    }
+
+    // Create a new source node.
+    this.sourceNode = this.audioCtx.createBufferSource();
+    this.sourceNode.buffer = this.audioBuffer;
+    this.sourceNode.connect(this.analyser).connect(this.audioCtx.destination);
+
+    // Handle looping manually
+    this.sourceNode.onended = () => {
+        if (this.isPlaying && this.sourceNode) {
+            this.seek(0); // Loop to the beginning
+        }
+    };
+
+    const offset = Math.max(0, Math.min(timeInSeconds, this.audioBuffer.duration));
+    this.sourceNode.start(0, offset);
+
+    this.startTime = this.audioCtx.currentTime - offset;
+    this.startOffset = offset;
+
+    // If context was suspended (e.g. from a previous pause), resume it.
+    if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+    }
+    this.isPlaying = true;
+  }
+
+  getDuration() {
+    return this.audioBuffer ? this.audioBuffer.duration : 0;
+  }
+
+  getCurrentTime() {
+    if (!this.audioBuffer) return 0;
+    if (this.isPlaying) {
+      return this.audioCtx.currentTime - this.startTime;
+    }
+    return this.startOffset;
   }
 
   getAudioData() {

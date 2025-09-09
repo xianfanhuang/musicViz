@@ -181,3 +181,83 @@ body {
     margin: 0;
     font-weight: 200;
 }
+
+/* Playback Info & Progress Bar */
+#playback-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0; /* Important for flex-grow in a flex container */
+    margin: 0 15px;
+    color: white;
+}
+
+#track-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 5px;
+    min-height: 38px; /* Reserve space to prevent layout shifts */
+}
+
+#track-title {
+    font-size: 16px;
+    font-weight: 400;
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#track-artist {
+    font-size: 12px;
+    font-weight: 200;
+    opacity: 0.7;
+}
+
+#progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+#current-time, #total-time {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+#progress-bar {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#progress-bar:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+#progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: white;
+    border-radius: 50%;
+    border: 0;
+}
+
+#progress-bar::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: white;
+    border-radius: 50%;
+    border: 0;
+}

@@ -31,6 +31,18 @@
                 <i id="icon-play" class="fas fa-play"></i>
                 <i id="icon-pause" class="fas fa-pause" style="display:none;"></i>
             </button>
+
+            <div id="playback-info">
+                <div id="track-info">
+                    <div id="track-title">--</div>
+                    <div id="track-artist">--</div>
+                </div>
+                <div id="progress-container">
+                    <span id="current-time">0:00</span>
+                    <input type="range" id="progress-bar" value="0" min="0" max="100" step="0.1">
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
             
             <div id="input-controls">
                 <label for="file-input" class="player-btn">
