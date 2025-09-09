@@ -12,6 +12,13 @@
 </head>
 <body>
 
+    <div id="drop-zone" class="hidden">
+        <div class="drop-message">
+            <i class="fas fa-file-arrow-down"></i>
+            <p>将音频文件拖放到此处</p>
+        </div>
+    </div>
+
     <div id="info">
         <div id="app-name">Sonoria</div>
         <div id="slogan-cn">极简旋律，绚丽之境。</div>
@@ -28,7 +35,7 @@
             <div id="input-controls">
                 <label for="file-input" class="player-btn">
                     <i class="fas fa-file-upload"></i>
-                    <input type="file" id="file-input" accept="*">
+                    <input type="file" id="file-input" accept="audio/*,.mp3,.wav,.aac,.m4a">
                 </label>
                 <div id="url-input-container">
                     <input type="text" id="url-input" placeholder="输入音频URL">
@@ -37,7 +44,10 @@
             </div>
         </div>
 
-        <button id="theme-button" class="player-btn">
+        <button id="visualizer-button" class="player-btn" title="切换视觉效果">
+            <i class="fas fa-shapes"></i>
+        </button>
+        <button id="color-button" class="player-btn" title="切换颜色主题">
             <i class="fas fa-palette"></i>
         </button>
 

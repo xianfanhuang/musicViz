@@ -24,16 +24,21 @@ const colorThemes = [
 let currentThemeIndex = 0;
 let baseColor = colorThemes[currentThemeIndex];
 
+let touchStartX = 0;
+let touchStartY = 0;
+
 const playButton = document.getElementById('play-button');
 const playIcon = document.getElementById('icon-play');
 const pauseIcon = document.getElementById('icon-pause');
 const fileInput = document.getElementById('file-input');
 const uiControls = document.getElementById('ui-controls');
-const themeButton = document.getElementById('theme-button');
+const visualizerButton = document.getElementById('visualizer-button');
+const colorButton = document.getElementById('color-button');
 const infoElement = document.getElementById('info');
 const urlInput = document.getElementById('url-input');
 const urlButton = document.getElementById('url-button');
 const loadingOverlay = document.getElementById('loading-overlay');
+const dropZone = document.getElementById('drop-zone');
 
 let lastActiveTime = 0;
 const IDLE_TIMEOUT = 15000;
@@ -103,12 +108,14 @@ urlButton.addEventListener('click', () => {
     }
 });
 
-themeButton.addEventListener('click', () => {
-    const themes = ['particles', 'bars', 'vortex'];
+visualizerButton.addEventListener('click', () => {
+    const themes = Object.keys(visualizations);
     let nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
     currentTheme = themes[nextIndex];
     currentVisualizer = visualizations[currentTheme];
+});
 
+colorButton.addEventListener('click', () => {
     currentThemeIndex = (currentThemeIndex + 1) % colorThemes.length;
     baseColor = colorThemes[currentThemeIndex];
 });
@@ -120,8 +127,77 @@ function windowResized() {
 window.addEventListener('mousemove', () => {
     lastActiveTime = millis();
 });
-window.addEventListener('touchstart', () => {
+// Mobile Gestures
+window.addEventListener('touchstart', (e) => {
     lastActiveTime = millis();
+    if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        const swipeThreshold = 50; // Minimum distance for a swipe
+        const tapThreshold = 10;   // Max distance for a tap
+
+        // Check for tap first
+        if (Math.abs(deltaX) < tapThreshold && Math.abs(deltaY) < tapThreshold) {
+            if (e.target.closest('.player-btn')) return;
+            playButton.click();
+            return;
+        }
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) { // Horizontal swipe
+            if (Math.abs(deltaX) > swipeThreshold) {
+                visualizerButton.click();
+            }
+        } else { // Vertical swipe
+            if (Math.abs(deltaY) > swipeThreshold) {
+                colorButton.click();
+            }
+        }
+    }
+});
+
+// Drag and Drop
+window.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.includes('Files')) {
+        dropZone.classList.remove('hidden');
+    }
+});
+
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('hidden');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('hidden');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('audio/')) {
+            audioManager.loadAudio(file);
+        } else {
+            console.warn("Dropped file is not an audio file:", file.type);
+            document.dispatchEvent(new CustomEvent('ui:loading', { detail: '错误: 请拖放音频文件' }));
+            setTimeout(() => {
+                document.dispatchEvent(new Event('ui:loaded'));
+            }, 2500);
+        }
+    }
 });
 
 document.addEventListener('ui:loading', (e) => {
