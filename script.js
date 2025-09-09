@@ -109,13 +109,6 @@ function draw() {
 
 playButton.addEventListener('click', () => {
     audioManager.togglePlayback();
-    if (audioManager.isPlaying) {
-        playIcon.style.display = 'none';
-        pauseIcon.style.display = 'inline-block';
-    } else {
-        playIcon.style.display = 'inline-block';
-        pauseIcon.style.display = 'none';
-    }
 });
 
 fileInput.addEventListener('change', (e) => {
@@ -248,4 +241,15 @@ document.addEventListener('ui:update-metadata', (e) => {
     trackTitle.textContent = meta.title || '未知标题';
     trackArtist.textContent = meta.artist || '未知艺术家';
     totalTimeEl.textContent = formatTime(meta.duration || 0);
+});
+
+// Listen for events from AudioManager to update UI
+document.addEventListener('audiomanager:play', () => {
+    playIcon.style.display = 'none';
+    pauseIcon.style.display = 'inline-block';
+});
+
+document.addEventListener('audiomanager:pause', () => {
+    playIcon.style.display = 'inline-block';
+    pauseIcon.style.display = 'none';
 });

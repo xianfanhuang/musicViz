@@ -21,6 +21,10 @@ class AudioManager {
   }
 
   /* --------- 私有工具 --------- */
+  _dispatchEvent(name, detail = {}) {
+    document.dispatchEvent(new CustomEvent(name, { detail }));
+  }
+
   initContext() {
     if (this.audioCtx) this.audioCtx.close();
     this.audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
@@ -98,6 +102,7 @@ class AudioManager {
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume().then(() => {
         this.isPlaying = true;
+        this._dispatchEvent('audiomanager:play');
       });
     }
     // If context is running, suspend it. This handles pause.
@@ -106,6 +111,7 @@ class AudioManager {
         this.isPlaying = false;
         // Store exact time on pause
         this.startOffset = this.audioCtx.currentTime - this.startTime;
+        this._dispatchEvent('audiomanager:pause');
       });
     }
     // Handles playing for the first time after loading
@@ -146,6 +152,7 @@ class AudioManager {
         this.audioCtx.resume();
     }
     this.isPlaying = true;
+    this._dispatchEvent('audiomanager:play');
   }
 
   getDuration() {
