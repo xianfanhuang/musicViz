@@ -1,5 +1,4 @@
-// 可视化函数
-visualizations.vortex = function() {
+visualizations.vortex = function(audioData, dataArray) {
     background(0, 0, 0); 
     
     let bassColor = color(baseColor[0], baseColor[1], baseColor[2]);
@@ -17,16 +16,16 @@ visualizations.vortex = function() {
     rotateY(frameCount * rotationSpeed);
     rotateX(frameCount * rotationSpeed * 0.6);
     
-    for (let i = 0; i < bufferLength; i += 2) {
+    for (let i = 0; i < audioManager.bufferLength; i += 2) {
         let radius = map(dataArray[i], 0, 255, 50, height / 3);
-        let angle = map(i, 0, bufferLength, 0, TWO_PI * 5);
+        let angle = map(i, 0, audioManager.bufferLength, 0, TWO_PI * 5);
         let x = radius * cos(angle);
         let y = radius * sin(angle);
         let z = map(dataArray[i], 0, 255, -height / 4, height / 4);
         
-        if (i < bufferLength / 3) {
+        if (i < audioManager.bufferLength / 3) {
             stroke(bassColor);
-        } else if (i < bufferLength * 2 / 3) {
+        } else if (i < audioManager.bufferLength * 2 / 3) {
             stroke(midsColor);
         } else {
             stroke(trebleColor);
