@@ -238,9 +238,24 @@ class MusicPlayer {
     }
 
     updateTrackInfo(metadata) {
+        console.log("Updating track info with metadata:", metadata); // Log for debugging
+
         document.getElementById('trackTitle').textContent = metadata.title || 'Unknown Title';
         document.getElementById('trackArtist').textContent = metadata.artist || 'Unknown Artist';
-        this.albumArt.src = metadata.coverURL || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+
+        const coverUrl = metadata.coverURL || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+        this.albumArt.src = coverUrl;
+
+        this.albumArt.onload = () => {
+            console.log("Album art loaded successfully from:", coverUrl);
+        };
+        this.albumArt.onerror = () => {
+            console.error("Failed to load album art from:", coverUrl);
+            // Fallback to a placeholder image if the primary one fails
+            if (this.albumArt.src !== 'https://via.placeholder.com/200/111/fff?text=Soundscape') {
+                this.albumArt.src = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+            }
+        };
     }
 }
 
