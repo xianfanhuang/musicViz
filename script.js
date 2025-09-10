@@ -1,255 +1,218 @@
-// script.js
-// Main application logic, handles UI and orchestrates modules.
+class MusicPlayer {
+    constructor() {
+        this.audioElement = document.getElementById('audioPlayer');
+        this.playlist = [];
+        this.currentTrackIndex = 0;
+        this.isPlaying = false;
+        this.volume = 0.8;
 
-const audioManager = window.audioManager;
+        this.audioContext = null;
+        this.visualizer = null;
 
-let currentVisualizer = null;
-let currentTheme = 'particles';
-let pulseFactor = 1;
-let currentVisualEnergy = 0;
+        // New UI Elements
+        this.albumArt = document.getElementById('albumArt');
+        this.playlistContainer = document.querySelector('.playlist-container');
+        this.uploadModal = document.querySelector('.upload-modal');
+        this.volumeIconPaths = {
+            up: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
+            down: "M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z",
+            mute: "M7 9v6h4l5 5V4L11 9H7z"
+        };
 
-const visualizations = {
-    'particles': null,
-    'bars': null,
-    'vortex': null
-};
-
-const colorThemes = [
-    [0, 100, 100], 
-    [60, 100, 100],
-    [120, 100, 100],
-    [240, 100, 100],
-    [300, 100, 100]
-];
-let currentThemeIndex = 0;
-let baseColor = colorThemes[currentThemeIndex];
-
-let touchStartX = 0;
-let touchStartY = 0;
-
-const playButton = document.getElementById('play-button');
-const playIcon = document.getElementById('icon-play');
-const pauseIcon = document.getElementById('icon-pause');
-const fileInput = document.getElementById('file-input');
-const uiControls = document.getElementById('ui-controls');
-const visualizerButton = document.getElementById('visualizer-button');
-const colorButton = document.getElementById('color-button');
-const infoElement = document.getElementById('info');
-const urlInput = document.getElementById('url-input');
-const urlButton = document.getElementById('url-button');
-const loadingOverlay = document.getElementById('loading-overlay');
-const dropZone = document.getElementById('drop-zone');
-const trackTitle = document.getElementById('track-title');
-const trackArtist = document.getElementById('track-artist');
-const currentTimeEl = document.getElementById('current-time');
-const totalTimeEl = document.getElementById('total-time');
-const progressBar = document.getElementById('progress-bar');
-
-let lastActiveTime = 0;
-const IDLE_TIMEOUT = 15000;
-
-function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-}
-
-function setup() {
-    createCanvas(windowWidth, windowHeight);
-    colorMode(HSL, 360, 100, 100, 1);
-    noLoop();
-    currentVisualizer = visualizations[currentTheme];
-
-    setTimeout(() => {
-        infoElement.style.opacity = 1;
-    }, 100);
-}
-
-function draw() {
-    if (!audioManager.isPlaying && millis() - lastActiveTime > IDLE_TIMEOUT) {
-        uiControls.classList.add('hidden');
-        infoElement.classList.remove('hidden');
-    } else {
-        uiControls.classList.remove('hidden');
-        infoElement.classList.add('hidden');
+        this.initializeAudioContext();
+        this.setupEventListeners();
+        this.setupVisualizer();
+        this.updateUI();
+        this.loadState();
     }
-    
-    background(0, 0, 0, 1);
 
-    // Update player UI if audio is loaded
-    const duration = audioManager.getDuration();
-    if (duration > 0) {
-        const currentTime = audioManager.getCurrentTime();
-        // Prevent UI update if the user is currently dragging the progress bar
-        if (document.activeElement !== progressBar) {
-            progressBar.value = (currentTime / duration) * 100;
+    async initializeAudioContext() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            const source = this.audioContext.createMediaElementSource(this.audioElement);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 256;
+
+            source.connect(this.analyser);
+            this.analyser.connect(this.audioContext.destination);
+
+            document.body.addEventListener('click', () => {
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }, { once: true });
+        } catch (error) {
+            console.warn('Could not create AudioContext:', error);
         }
-        totalTimeEl.textContent = formatTime(duration);
-        currentTimeEl.textContent = formatTime(currentTime);
+    }
+
+    setupEventListeners() {
+        // Player Controls
+        document.getElementById('playBtn').addEventListener('click', this.togglePlay.bind(this));
+        document.getElementById('prevBtn').addEventListener('click', this.previousTrack.bind(this));
+        document.getElementById('nextBtn').addEventListener('click', this.nextTrack.bind(this));
+        document.getElementById('progressBar').addEventListener('click', this.seekTo.bind(this));
+
+        // Secondary Controls
+        document.getElementById('addMusicBtn').addEventListener('click', this.toggleUploadModal.bind(this));
+        document.getElementById('togglePlaylistBtn').addEventListener('click', this.togglePlaylist.bind(this));
+        document.getElementById('muteBtn').addEventListener('click', this.toggleMute.bind(this));
+        document.getElementById('volumeSlider').addEventListener('input', this.setVolume.bind(this));
+
+        // Playlist
+        document.getElementById('closePlaylistBtn').addEventListener('click', this.togglePlaylist.bind(this));
+        document.getElementById('playlist').addEventListener('click', this.handlePlaylistClick.bind(this));
+
+        // Upload Modal
+        document.getElementById('closeUploadBtn').addEventListener('click', this.toggleUploadModal.bind(this));
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', (e) => e.currentTarget.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', this.handleDrop.bind(this));
+        fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+        document.getElementById('sniffBtn').addEventListener('click', this.sniffURL.bind(this));
+        document.getElementById('urlInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.sniffURL(); });
+
+        // Audio Element Events
+        this.audioElement.addEventListener('loadedmetadata', this.onLoadedMetadata.bind(this));
+        this.audioElement.addEventListener('timeupdate', this.onTimeUpdate.bind(this));
+        this.audioElement.addEventListener('ended', this.onTrackEnded.bind(this));
+        this.audioElement.addEventListener('play', this.onPlay.bind(this));
+        this.audioElement.addEventListener('pause', this.onPause.bind(this));
+
+        window.addEventListener('beforeunload', this.destroy.bind(this));
     }
     
-    const audioData = audioManager.getAudioData();
-
-    if (audioManager.isPlaying) {
-        currentVisualEnergy = lerp(currentVisualEnergy, audioData.energy, 0.1);
-        let currentPulse = map(audioData.bass * audioData.energy, 0, 1, 0.5, 1);
-        pulseFactor = lerp(pulseFactor, currentPulse, 0.1);
-    } else {
-        currentVisualEnergy = lerp(currentVisualEnergy, 0, 0.05);
-        pulseFactor = lerp(pulseFactor, 0.5, 0.05);
-    }
-    
-    if (currentVisualizer) {
-        currentVisualizer(audioData, audioManager.dataArray);
+    destroy() {
+        if (this.visualizer) {
+            this.visualizer.destroy();
+        }
     }
 
-    requestAnimationFrame(draw);
-}
-
-playButton.addEventListener('click', () => {
-    audioManager.togglePlayback();
-});
-
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        audioManager.loadAudio(file);
+    setupVisualizer() {
+        // This is now handled by p5-sketch.js
+        console.log("Visualizer setup is delegated to p5-sketch.js");
     }
-});
 
-urlButton.addEventListener('click', () => {
-    const url = urlInput.value.trim();
-    if (url) {
-        audioManager.loadAudio(url);
+    togglePlaylist() {
+        this.playlistContainer.classList.toggle('visible');
     }
-});
 
-visualizerButton.addEventListener('click', () => {
-    const themes = Object.keys(visualizations);
-    let nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
-    currentTheme = themes[nextIndex];
-    currentVisualizer = visualizations[currentTheme];
-});
-
-colorButton.addEventListener('click', () => {
-    currentThemeIndex = (currentThemeIndex + 1) % colorThemes.length;
-    baseColor = colorThemes[currentThemeIndex];
-});
-
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
-}
-
-window.addEventListener('mousemove', () => {
-    lastActiveTime = millis();
-});
-// Mobile Gestures
-window.addEventListener('touchstart', (e) => {
-    lastActiveTime = millis();
-    if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+    toggleUploadModal() {
+        this.uploadModal.classList.toggle('visible');
     }
-}, { passive: true });
 
-window.addEventListener('touchend', (e) => {
-    if (e.changedTouches.length === 1) {
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-        const swipeThreshold = 50; // Minimum distance for a swipe
-        const tapThreshold = 10;   // Max distance for a tap
+    handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        this.processFiles(Array.from(e.dataTransfer.files));
+    }
 
-        // Check for tap first
-        if (Math.abs(deltaX) < tapThreshold && Math.abs(deltaY) < tapThreshold) {
-            if (e.target.closest('.player-btn')) return;
-            playButton.click();
+    handleFileSelect(e) {
+        this.processFiles(Array.from(e.target.files));
+    }
+
+    async processFiles(files) {
+        const audioFiles = files.filter(file =>
+            file.type.startsWith('audio/') ||
+            (window.audioDecoder && window.audioDecoder.detectFormat(file))
+        );
+
+        if (audioFiles.length === 0) {
+            this.showNotification('Please select valid audio files.', 'error');
             return;
         }
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) { // Horizontal swipe
-            if (Math.abs(deltaX) > swipeThreshold) {
-                visualizerButton.click();
-            }
-        } else { // Vertical swipe
-            if (Math.abs(deltaY) > swipeThreshold) {
-                colorButton.click();
+        this.toggleUploadModal();
+
+        for (const file of audioFiles) {
+            try {
+                const result = await window.audioDecoder.decodeAudio(file);
+                const audioURL = URL.createObjectURL(result.audioData);
+
+                const track = {
+                    id: this.generateId(),
+                    url: audioURL,
+                    metadata: result.metadata,
+                    file: result.audioData,
+                    originalFormat: result.originalFormat,
+                    decodedFormat: result.decodedFormat
+                };
+
+                if (!track.metadata.cover) {
+                    track.metadata.cover = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+                }
+
+                this.playlist.push(track);
+                this.addToPlaylistUI(track, this.playlist.length - 1);
+
+            } catch (error) {
+                console.error('File processing failed:', error);
+                this.showNotification(`Failed to process ${file.name}: ${error.message}`, 'error');
             }
         }
+
+        if (this.playlist.length > 0 && !this.isPlaying) {
+            this.loadTrack(0);
+        }
+        this.saveState();
+        this.showNotification(`Added ${audioFiles.length} tracks.`, 'success');
     }
-});
 
-// Drag and Drop
-window.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    if (e.dataTransfer.types.includes('Files')) {
-        dropZone.classList.remove('hidden');
+    async sniffURL() {
+        const urlInput = document.getElementById('urlInput');
+        const url = urlInput.value.trim();
+        if (!url) return;
+        this.showNotification('Sniffing URL...', 'info');
+        // This part would need the server to be working correctly.
+        // For now, we'll keep it as a placeholder.
+        this.showNotification('URL sniffing not yet fully implemented.', 'warning');
+        urlInput.value = '';
+        this.toggleUploadModal();
     }
-});
 
-window.addEventListener('dragover', (e) => {
-    e.preventDefault();
-});
+    addToPlaylistUI(track, index) {
+        const playlistEl = document.getElementById('playlist');
+        const item = document.createElement('div');
+        item.className = 'playlist-item';
+        item.dataset.trackId = track.id;
+        item.innerHTML = `
+            <div class="track-details">
+                <div class="track-name">${track.metadata.title}</div>
+                <div class="track-artist">${track.metadata.artist}</div>
+            </div>
+            <button class="remove-track-btn" data-track-id="${track.id}">&times;</button>
+        `;
+        item.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-track-btn')) return;
+            const trackIndex = this.playlist.findIndex(t => t.id === track.id);
+            this.loadTrack(trackIndex);
+        });
+        playlistEl.appendChild(item);
+    }
 
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('hidden');
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('hidden');
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        const file = files[0];
-        if (file.type.startsWith('audio/')) {
-            audioManager.loadAudio(file);
-        } else {
-            console.warn("Dropped file is not an audio file:", file.type);
-            document.dispatchEvent(new CustomEvent('ui:loading', { detail: '错误: 请拖放音频文件' }));
-            setTimeout(() => {
-                document.dispatchEvent(new Event('ui:loaded'));
-            }, 2500);
+    async loadTrack(index) {
+        if (index < 0 || index >= this.playlist.length) return;
+        this.currentTrackIndex = index;
+        const track = this.playlist[index];
+        this.audioElement.src = track.url;
+        this.updateTrackInfo(track.metadata);
+        this.updatePlaylistUI();
+        this.saveState();
+        if (this.isPlaying) {
+            this.audioElement.play();
         }
     }
-});
 
-document.addEventListener('ui:loading', (e) => {
-    loadingOverlay.classList.remove('hidden');
-    loadingOverlay.querySelector('p').textContent = e.detail;
-});
-
-document.addEventListener('ui:loaded', () => {
-    loadingOverlay.classList.add('hidden');
-});
-
-progressBar.addEventListener('input', () => {
-    const duration = audioManager.getDuration();
-    if (duration > 0) {
-        const newTime = duration * (progressBar.value / 100);
-        audioManager.seek(newTime);
-        // Immediately update time display for better UX
-        currentTimeEl.textContent = formatTime(newTime);
+    updateTrackInfo(metadata) {
+        document.getElementById('trackTitle').textContent = metadata.title || 'Unknown Title';
+        document.getElementById('trackArtist').textContent = metadata.artist || 'Unknown Artist';
+        this.albumArt.src = metadata.cover || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
     }
-});
+}
 
-document.addEventListener('ui:update-metadata', (e) => {
-    const meta = e.detail;
-    trackTitle.textContent = meta.title || '未知标题';
-    trackArtist.textContent = meta.artist || '未知艺术家';
-    totalTimeEl.textContent = formatTime(meta.duration || 0);
-});
-
-// Listen for events from AudioManager to update UI
-document.addEventListener('audiomanager:play', () => {
-    playIcon.style.display = 'none';
-    pauseIcon.style.display = 'inline-block';
-});
-
-document.addEventListener('audiomanager:pause', () => {
-    playIcon.style.display = 'inline-block';
-    pauseIcon.style.display = 'none';
-});
+// Initialize the music player
+document.addEventListener('DOMContentLoaded', () => new MusicPlayer());
