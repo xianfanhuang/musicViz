@@ -44,8 +44,6 @@ body {
     height: 100%;
     background: radial-gradient(circle, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%);
     z-index: 1;
-    backdrop-filter: blur(0px);
-    transition: backdrop-filter 0.5s ease-in-out;
 }
 
 .player-container {
@@ -362,8 +360,4 @@ body {
 .player-container.idle {
     opacity: 0;
     pointer-events: none;
-}
-
-.background-overlay.blurred {
-    backdrop-filter: blur(10px);
 }

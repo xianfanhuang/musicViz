@@ -20,6 +20,7 @@ class MusicPlayer {
         this.progressFill = document.getElementById('progressFill');
         this.lastActiveTime = Date.now();
         this.IDLE_TIMEOUT = 15000; // 15 seconds
+        this.isIdle = false;
         this.progressBar = document.getElementById('progressBar');
         this.currentTimeEl = document.getElementById('currentTime');
         this.totalTimeEl = document.getElementById('totalTime');
@@ -260,12 +261,13 @@ class MusicPlayer {
     updatePlaylistUI() { console.log("updatePlaylistUI placeholder"); }
 
     _idleCheckLoop() {
-        if (Date.now() - this.lastActiveTime > this.IDLE_TIMEOUT) {
+        const isIdle = (Date.now() - this.lastActiveTime > this.IDLE_TIMEOUT);
+        this.isIdle = isIdle; // Expose idle state for p5 sketch
+
+        if (isIdle) {
             document.querySelector('.player-container').classList.add('idle');
-            if (this.backgroundOverlay) this.backgroundOverlay.classList.add('blurred');
         } else {
             document.querySelector('.player-container').classList.remove('idle');
-            if (this.backgroundOverlay) this.backgroundOverlay.classList.remove('blurred');
         }
         requestAnimationFrame(this._idleCheckLoop.bind(this));
     }
