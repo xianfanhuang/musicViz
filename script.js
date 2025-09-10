@@ -240,9 +240,12 @@ class MusicPlayer {
     updateTrackInfo(metadata) {
         document.getElementById('trackTitle').textContent = metadata.title || 'Unknown Title';
         document.getElementById('trackArtist').textContent = metadata.artist || 'Unknown Artist';
-        this.albumArt.src = metadata.cover || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+        this.albumArt.src = metadata.coverURL || 'https://via.placeholder.com/200/111/fff?text=Soundscape';
     }
 }
 
-// Initialize the music player
-document.addEventListener('DOMContentLoaded', () => new MusicPlayer());
+// Initialize the music player and make it globally accessible
+window.musicPlayer = null;
+document.addEventListener('DOMContentLoaded', () => {
+    window.musicPlayer = new MusicPlayer();
+});
