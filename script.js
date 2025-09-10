@@ -13,6 +13,7 @@ class MusicPlayer {
         this.albumArt = document.getElementById('albumArt');
         this.playlistContainer = document.querySelector('.playlist-container');
         this.uploadModal = document.querySelector('.upload-modal');
+        this.metaScraper = new MetaScraper();
         this.volumeIconPaths = {
             up: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
             down: "M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z",
@@ -131,19 +132,28 @@ class MusicPlayer {
         for (const file of audioFiles) {
             try {
                 const result = await window.audioDecoder.decodeAudio(file);
+
+                const audioBuffer = await this.audioContext.decodeAudioData(await result.audioData.arrayBuffer());
+                const finalMetadata = await this.metaScraper.fetchMetadata(
+                    result.metadata.title,
+                    result.metadata.artist,
+                    audioBuffer.duration,
+                    audioBuffer
+                );
+
                 const audioURL = URL.createObjectURL(result.audioData);
 
                 const track = {
                     id: this.generateId(),
                     url: audioURL,
-                    metadata: result.metadata,
+                    metadata: finalMetadata,
                     file: result.audioData,
                     originalFormat: result.originalFormat,
                     decodedFormat: result.decodedFormat
                 };
 
-                if (!track.metadata.cover) {
-                    track.metadata.cover = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+                if (!track.metadata.coverURL) {
+                    track.metadata.coverURL = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
                 }
 
                 this.playlist.push(track);
@@ -161,6 +171,26 @@ class MusicPlayer {
         this.saveState();
         this.showNotification(`Added ${audioFiles.length} tracks.`, 'success');
     }
+
+    // Dummy implementations for methods not fully provided by user
+    generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+    saveState() { console.log("State saving placeholder"); }
+    updateUI() { console.log("UI update placeholder"); }
+    loadState() { console.log("State loading placeholder"); }
+    showNotification(message, type) { console.log(`[${type}] ${message}`); }
+    togglePlay() { if (this.audioElement.src) { this.isPlaying ? this.audioElement.pause() : this.audioElement.play(); } }
+    previousTrack() { console.log("Previous track placeholder"); }
+    nextTrack() { console.log("Next track placeholder"); }
+    seekTo() { console.log("Seek placeholder"); }
+    toggleMute() { console.log("Mute placeholder"); }
+    setVolume() { console.log("Set volume placeholder"); }
+    handlePlaylistClick() { console.log("Playlist click placeholder"); }
+    onLoadedMetadata() { console.log("onLoadedMetadata placeholder"); }
+    onTimeUpdate() { console.log("onTimeUpdate placeholder"); }
+    onTrackEnded() { this.nextTrack(); }
+    onPlay() { this.isPlaying = true; }
+    onPause() { this.isPlaying = false; }
+    updatePlaylistUI() { console.log("updatePlaylistUI placeholder"); }
 
     async sniffURL() {
         const urlInput = document.getElementById('urlInput');
