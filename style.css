@@ -4,7 +4,7 @@
     --primary-color: #ffffff;
     --secondary-color: rgba(255, 255, 255, 0.7);
     --background-color: #000000;
-    --glass-bg: rgba(25, 25, 25, 0.5);
+    --glass-bg: rgba(25, 25, 25, 0.1); /* Lowered opacity for debugging */
     --glass-border: rgba(255, 255, 255, 0.1);
     --accent-color: #ff7e5f;
     --shadow-color: rgba(0, 0, 0, 0.5);
