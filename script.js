@@ -13,7 +13,7 @@ class MusicPlayer {
         this.albumArt = document.getElementById('albumArt');
         this.playlistContainer = document.querySelector('.playlist-container');
         this.uploadModal = document.querySelector('.upload-modal');
-        this.metaScraper = null; // Disabled for debugging
+        this.metaScraper = new MetaScraper();
         this.volumeIconPaths = {
             up: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
             down: "M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z",
@@ -131,23 +131,30 @@ class MusicPlayer {
 
         for (const file of audioFiles) {
             try {
-                // --- Scraper is temporarily disabled for debugging ---
                 const result = await window.audioDecoder.decodeAudio(file);
-                console.log("Scraper disabled. Using basic metadata:", result.metadata);
+
+                const audioBuffer = await this.audioContext.decodeAudioData(await result.audioData.arrayBuffer());
+                const finalMetadata = await this.metaScraper.fetchMetadata(
+                    result.metadata.title,
+                    result.metadata.artist,
+                    audioBuffer.duration,
+                    audioBuffer
+                );
 
                 const audioURL = URL.createObjectURL(result.audioData);
 
                 const track = {
                     id: this.generateId(),
                     url: audioURL,
-                    metadata: result.metadata, // Use basic metadata directly
+                    metadata: finalMetadata,
                     file: result.audioData,
                     originalFormat: result.originalFormat,
                     decodedFormat: result.decodedFormat
                 };
 
-                // Use a placeholder cover, and use the correct property name `coverURL`
-                track.metadata.coverURL = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+                if (!track.metadata.coverURL) {
+                    track.metadata.coverURL = 'https://via.placeholder.com/200/111/fff?text=Soundscape';
+                }
 
                 this.playlist.push(track);
                 this.addToPlaylistUI(track, this.playlist.length - 1);

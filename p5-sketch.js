@@ -80,7 +80,7 @@ function draw() {
         dataArray = new Uint8Array(analyser.frequencyBinCount);
     }
 
-    if (musicPlayer && musicPlayer.isPlaying && analyser) {
+    if (musicPlayer && !musicPlayer.audioElement.paused && analyser) {
         analyser.getByteFrequencyData(dataArray);
 
         const audioData = {
