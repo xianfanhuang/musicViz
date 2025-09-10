@@ -13,6 +13,7 @@ class MusicPlayer {
         this.albumArt = document.getElementById('albumArt');
         this.playlistContainer = document.querySelector('.playlist-container');
         this.uploadModal = document.querySelector('.upload-modal');
+        this.backgroundOverlay = document.querySelector('.background-overlay');
         this.metaScraper = new MetaScraper();
         this.playIcon = document.querySelector('.play-icon');
         this.pauseIcon = document.querySelector('.pause-icon');
@@ -261,8 +262,10 @@ class MusicPlayer {
     _idleCheckLoop() {
         if (Date.now() - this.lastActiveTime > this.IDLE_TIMEOUT) {
             document.querySelector('.player-container').classList.add('idle');
+            if (this.backgroundOverlay) this.backgroundOverlay.classList.add('blurred');
         } else {
             document.querySelector('.player-container').classList.remove('idle');
+            if (this.backgroundOverlay) this.backgroundOverlay.classList.remove('blurred');
         }
         requestAnimationFrame(this._idleCheckLoop.bind(this));
     }
