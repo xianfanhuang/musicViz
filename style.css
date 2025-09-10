@@ -47,6 +47,7 @@ body {
 }
 
 .player-container {
+    transition: opacity 0.5s ease-in-out;
     position: relative;
     z-index: 2;
     width: 90%;
@@ -355,3 +356,8 @@ body {
 
 .notification.success { background-color: #4CAF50; }
 .notification.error { background-color: #f44336; }
+
+.player-container.idle {
+    opacity: 0;
+    pointer-events: none;
+}

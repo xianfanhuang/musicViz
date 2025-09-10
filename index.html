@@ -17,7 +17,7 @@
         </div>
 
         <div class="track-info">
-            <div class="track-title" id="trackTitle">Select a song </div>
+            <div class="track-title" id="trackTitle">Select a song to play</div>
             <div class="track-artist" id="trackArtist"></div>
         </div>
 
@@ -72,7 +72,7 @@
              <button class="control-btn close-upload-btn" id="closeUploadBtn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
             <h3>Add Music</h3>
             <div class="upload-area" id="uploadArea">
-                <p>⬆️</p>
+                <p>Drag & drop files or click to select</p>
                 <input type="file" id="fileInput" accept=".mp3,.flac,.wav,.ogg,.m4a,.aac" multiple style="display: none;">
             </div>
             <div class="url-input-container">
@@ -84,6 +84,7 @@
 
     <audio id="audioPlayer" preload="auto"></audio>
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="audio-decoder.js"></script>
     <script src="network-sniffer.js"></script> <!-- Will be removed later -->
